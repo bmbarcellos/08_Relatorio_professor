@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório Gerencial – Prova Digital</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f2f4f7;
+      margin: 0;
+      padding: 24px;
+      color: #111;
+    }
+
+    h1 {
+      color: #003366;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      margin-top: 32px;
+      color: #003366;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .metric {
+      text-align: center;
+      padding: 14px;
+      border-radius: 6px;
+      background: #f8f9fb;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 1.8rem;
+      color: #003366;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    th {
+      background: #e9eef3;
+    }
+
+    .loading {
+      text-align: center;
+      font-size: 1.1rem;
+      color: #666;
+    }
+
+    .footer {
+      margin-top: 24px;
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+    }
+  </style>
+</head>
+
+<body>
+
+<h1>Relatório Gerencial da Prova Digital</h1>
+<p>Universidade Federal Fluminense</p>
+
+<div id="conteudo" class="loading">
+  Carregando relatório...
+</div>
+
+<div class="footer">
+  Relatório gerado automaticamente pelo sistema de provas digitais
+</div>
+
+<script>
+  async function carregarRelatorio() {
+
+    // Recupera dados enviados pela página 1 (localStorage)
+    const payload = JSON.parse(localStorage.getItem("relatorio_payload"));
+
+    if (!payload) {
+      document.getElementById("conteudo").innerHTML =
+        "<p>Dados de autenticação não encontrados.</p>";
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        "https://webhook.artideia.com.br/webhook/relatorio_professor",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        }
+      );
+
+      const data = await res.json();
+      renderizarRelatorio(data);
+
+    } catch (e) {
+      document.getElementById("conteudo").innerHTML =
+        "<p>Erro ao carregar relatório.</p>";
+    }
+  }
+
+  function renderizarRelatorio(d) {
+
+    const tempoMin = Math.round(d.tempo_medio_segundos / 60);
+
+    const html = `
+      <div class="card">
+        <div class="grid">
+          <div class="metric">
+            <strong>${d.total_alunos}</strong>
+            Alunos avaliados
+          </div>
+
+          <div class="metric">
+            <strong>${d.media_turma}</strong>
+            Média da turma
+          </div>
+
+          <div class="metric">
+            <strong>${tempoMin} min</strong>
+            Tempo médio
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Percentual de Acerto por Questão</h2>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Questão</th>
+              <th>% de Acerto</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${d.questoes.map(q => `
+              <tr>
+                <td>${q.questao_id}</td>
+                <td>${q.percentual_acerto}%</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    document.getElementById("conteudo").innerHTML = html;
+  }
+
+  carregarRelatorio();
+</script>
+
+</body>
+</html>

@@ -156,39 +156,14 @@
         prova_id: document.getElementById("prova_id").value
       };
 
-      try {
-        const res = await fetch(
-          "https://webhook.artideia.com.br/webhook/relatorio_professor",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-          }
-        );
+      // 🔗 CONEXÃO PÁGINA 1 → PÁGINA 2
+      localStorage.setItem(
+        "relatorio_payload",
+        JSON.stringify(payload)
+      );
 
-        if (!res.ok) {
-          throw new Error("Falha ao solicitar relatório");
-        }
-
-        const data = await res.json();
-
-        alert(
-          data.mensagem ||
-          "Relatório solicitado com sucesso."
-        );
-
-        // Se o workflow devolver link do PDF:
-        if (data.pdf) {
-          window.open(data.pdf, "_blank");
-        }
-
-      } catch (err) {
-        alert("Erro ao gerar relatório. Verifique os dados e tente novamente.");
-      } finally {
-        loading.style.display = "none";
-      }
+      // redireciona para a página 2 (relatório gerencial)
+      window.location.href = "relatorio.html";
     });
   </script>
 

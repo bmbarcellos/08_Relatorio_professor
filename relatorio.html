@@ -16,12 +16,17 @@
 
     h1 {
       color: #003366;
-      margin-bottom: 8px;
+      margin-bottom: 4px;
     }
 
     h2 {
       margin-top: 32px;
       color: #003366;
+    }
+
+    .subtitle {
+      color: #555;
+      margin-bottom: 24px;
     }
 
     .card {
@@ -75,7 +80,7 @@
     }
 
     .footer {
-      margin-top: 24px;
+      margin-top: 32px;
       font-size: 12px;
       color: #666;
       text-align: center;
@@ -86,7 +91,7 @@
 <body>
 
 <h1>Relatório Gerencial da Prova Digital</h1>
-<p>Universidade Federal Fluminense</p>
+<p class="subtitle">Universidade Federal Fluminense</p>
 
 <div id="conteudo" class="loading">
   Carregando relatório...
@@ -99,8 +104,9 @@
 <script>
   async function carregarRelatorio() {
 
-    // Recupera dados enviados pela página 1 (localStorage)
-    const payload = JSON.parse(localStorage.getItem("relatorio_payload"));
+    const payload = JSON.parse(
+      localStorage.getItem("relatorio_payload")
+    );
 
     if (!payload) {
       document.getElementById("conteudo").innerHTML =
@@ -123,17 +129,17 @@
 
     } catch (e) {
       document.getElementById("conteudo").innerHTML =
-        "<p>Erro ao carregar relatório.</p>";
+        "<p>Erro ao carregar o relatório.</p>";
     }
   }
 
   function renderizarRelatorio(d) {
 
-    const tempoMin = Math.round(d.tempo_medio_segundos / 60);
-
     const html = `
+      <!-- MÉTRICAS GERAIS -->
       <div class="card">
         <div class="grid">
+
           <div class="metric">
             <strong>${d.total_alunos}</strong>
             Alunos avaliados
@@ -145,12 +151,14 @@
           </div>
 
           <div class="metric">
-            <strong>${tempoMin} min</strong>
+            <strong>${d.tempo_medio_min} min</strong>
             Tempo médio
           </div>
+
         </div>
       </div>
 
+      <!-- ACERTO POR QUESTÃO -->
       <div class="card">
         <h2>Percentual de Acerto por Questão</h2>
 

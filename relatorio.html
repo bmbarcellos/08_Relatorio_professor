@@ -14,19 +14,8 @@
       color: #111;
     }
 
-    h1 {
+    h1, h2 {
       color: #003366;
-      margin-bottom: 4px;
-    }
-
-    h2 {
-      margin-top: 32px;
-      color: #003366;
-    }
-
-    .subtitle {
-      color: #555;
-      margin-bottom: 24px;
     }
 
     .card {
@@ -60,12 +49,12 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 12px;
+      font-size: 13px;
     }
 
     th, td {
       border: 1px solid #ccc;
       padding: 8px;
-      font-size: 13px;
       text-align: center;
     }
 
@@ -73,17 +62,27 @@
       background: #e9eef3;
     }
 
+    .violacao {
+      color: #b00020;
+      font-weight: bold;
+    }
+
+    .ok {
+      color: #2e7d32;
+      font-weight: bold;
+    }
+
+    .footer {
+      margin-top: 24px;
+      font-size: 12px;
+      color: #666;
+      text-align: center;
+    }
+
     .loading {
       text-align: center;
       font-size: 1.1rem;
       color: #666;
-    }
-
-    .footer {
-      margin-top: 32px;
-      font-size: 12px;
-      color: #666;
-      text-align: center;
     }
   </style>
 </head>
@@ -91,7 +90,7 @@
 <body>
 
 <h1>Relatório Gerencial da Prova Digital</h1>
-<p class="subtitle">Universidade Federal Fluminense</p>
+<p>Universidade Federal Fluminense</p>
 
 <div id="conteudo" class="loading">
   Carregando relatório...
@@ -104,9 +103,7 @@
 <script>
   async function carregarRelatorio() {
 
-    const payload = JSON.parse(
-      localStorage.getItem("relatorio_payload")
-    );
+    const payload = JSON.parse(localStorage.getItem("relatorio_payload"));
 
     if (!payload) {
       document.getElementById("conteudo").innerHTML =
@@ -127,19 +124,17 @@
       const data = await res.json();
       renderizarRelatorio(data);
 
-    } catch (e) {
+    } catch {
       document.getElementById("conteudo").innerHTML =
-        "<p>Erro ao carregar o relatório.</p>";
+        "<p>Erro ao carregar relatório.</p>";
     }
   }
 
   function renderizarRelatorio(d) {
 
     const html = `
-      <!-- MÉTRICAS GERAIS -->
       <div class="card">
         <div class="grid">
-
           <div class="metric">
             <strong>${d.total_alunos}</strong>
             Alunos avaliados
@@ -154,19 +149,16 @@
             <strong>${d.tempo_medio_min} min</strong>
             Tempo médio
           </div>
-
         </div>
       </div>
 
-      <!-- ACERTO POR QUESTÃO -->
       <div class="card">
         <h2>Percentual de Acerto por Questão</h2>
-
         <table>
           <thead>
             <tr>
               <th>Questão</th>
-              <th>% de Acerto</th>
+              <th>% de acerto</th>
             </tr>
           </thead>
           <tbody>
@@ -176,6 +168,39 @@
                 <td>${q.percentual_acerto}%</td>
               </tr>
             `).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Desempenho dos Alunos</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Matrícula</th>
+              <th>Nota</th>
+              <th>Duração (min)</th>
+              <th>Violações</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${d.alunos.map(a => {
+              const violacoes = Object.keys(a.violacoes || {});
+              return `
+                <tr>
+                  <td>${a.nome}</td>
+                  <td>${a.matricula}</td>
+                  <td>${a.nota}</td>
+                  <td>${a.duracao_min}</td>
+                  <td class="${violacoes.length ? "violacao" : "ok"}">
+                    ${violacoes.length
+                      ? violacoes.join(", ")
+                      : "Nenhuma"}
+                  </td>
+                </tr>
+              `;
+            }).join("")}
           </tbody>
         </table>
       </div>

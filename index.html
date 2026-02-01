@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Relatório de Prova Digital</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f2f4f7;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .container {
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 24px;
+      width: 100%;
+      max-width: 380px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-top: 6px solid #003366; /* Azul UFF */
+    }
+
+    h2 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      color: #003366;
+      text-align: center;
+      font-size: 1.3rem;
+    }
+
+    p.subtitle {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #555;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #00509e;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      background-color: #003366;
+      color: #ffffff;
+      border: none;
+      border-radius: 4px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #00509e;
+    }
+
+    .footer {
+      margin-top: 16px;
+      font-size: 0.8rem;
+      text-align: center;
+      color: #666;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: #003366;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h2>Relatório de Prova Digital</h2>
+    <p class="subtitle">
+      Acesso ao relatório gerencial da avaliação
+    </p>
+
+    <form id="formRelatorio">
+      <label for="email">E-mail institucional</label>
+      <input
+        type="email"
+        id="email"
+        name="email"
+        placeholder="nome@id.uff.br"
+        required
+      >
+
+      <label for="senha">Matrícula</label>
+      <input
+        type="number"
+        id="senha"
+        name="senha"
+        required
+      >
+
+      <label for="prova_id">ID da prova</label>
+      <input
+        type="text"
+        id="prova_id"
+        name="prova_id"
+        placeholder="PROVA-2026-01"
+        required
+      >
+
+      <button type="submit">Gerar relatório</button>
+    </form>
+
+    <div class="loading" id="loading">
+      Gerando relatório, aguarde...
+    </div>
+
+    <div class="footer">
+      Universidade Federal Fluminense
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById("formRelatorio");
+    const loading = document.getElementById("loading");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      loading.style.display = "block";
+
+      const payload = {
+        email: document.getElementById("email").value,
+        senha: Number(document.getElementById("senha").value),
+        prova_id: document.getElementById("prova_id").value
+      };
+
+      try {
+        const res = await fetch(
+          "https://webhook.artideia.com.br/webhook/relatorio_professor",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          }
+        );
+
+        if (!res.ok) {
+          throw new Error("Falha ao solicitar relatório");
+        }
+
+        const data = await res.json();
+
+        alert(
+          data.mensagem ||
+          "Relatório solicitado com sucesso."
+        );
+
+        // Se o workflow devolver link do PDF:
+        if (data.pdf) {
+          window.open(data.pdf, "_blank");
+        }
+
+      } catch (err) {
+        alert("Erro ao gerar relatório. Verifique os dados e tente novamente.");
+      } finally {
+        loading.style.display = "none";
+      }
+    });
+  </script>
+
+</body>
+</html>

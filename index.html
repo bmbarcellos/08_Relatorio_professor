@@ -78,6 +78,11 @@
       background-color: #00509e;
     }
 
+    button:disabled {
+      background-color: #999;
+      cursor: not-allowed;
+    }
+
     .footer {
       margin-top: 16px;
       font-size: 0.8rem;
@@ -113,11 +118,11 @@
         required
       >
 
-      <label for="senha">Matrícula</label>
+      <label for="matricula">Matrícula</label>
       <input
         type="number"
-        id="senha"
-        name="senha"
+        id="matricula"
+        name="matricula"
         required
       >
 
@@ -145,18 +150,24 @@
   <script>
     const form = document.getElementById("formRelatorio");
     const loading = document.getElementById("loading");
+    const button = form.querySelector("button");
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+
       loading.style.display = "block";
+      button.disabled = true;
 
       const payload = {
         email: document.getElementById("email").value,
-        senha: Number(document.getElementById("senha").value),
+        senha: Number(document.getElementById("matricula").value),
         prova_id: document.getElementById("prova_id").value
       };
 
-      // 🔗 CONEXÃO PÁGINA 1 → PÁGINA 2
+      // limpa payload anterior
+      localStorage.removeItem("relatorio_payload");
+
+      // salva novo payload
       localStorage.setItem(
         "relatorio_payload",
         JSON.stringify(payload)

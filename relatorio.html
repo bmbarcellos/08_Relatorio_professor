@@ -41,7 +41,7 @@
       margin-top: 0;
     }
 
-    .summary, table {
+    .summary, table, .chart-container {
       background-color: #fff;
       padding: 16px;
       border-radius: 8px;
@@ -84,6 +84,8 @@
       font-size: 0.85rem;
     }
   </style>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <!-- Cabeçalho -->
@@ -97,6 +99,12 @@
 
     <!-- Resumo da prova -->
     <div class="section summary" id="resumoProva"></div>
+
+    <!-- Gráfico de desempenho por questão -->
+    <div class="section chart-container">
+      <h3>Desempenho por Questão (%)</h3>
+      <canvas id="graficoQuestoes"></canvas>
+    </div>
 
     <!-- Tabela de alunos -->
     <div class="section">
@@ -146,11 +154,9 @@
       // ------------------------------
       const resumoDiv = document.getElementById("resumoProva");
 
-      // Horário de início/fim
       const inicio = data.inicio ? new Date(data.inicio).toLocaleString() : "-";
       const fim = data.fim ? new Date(data.fim).toLocaleString() : "-";
 
-      // Tempo de prova (se fornecido, caso contrário calcula como diferença)
       let tempoProva = data.tempo_prova_min;
       if (!tempoProva && data.inicio && data.fim) {
         const dur = (new Date(data.fim) - new Date(data.inicio)) / 60000;
@@ -203,6 +209,43 @@
           <td>${q.percentual_acerto}%</td>
         </tr>
       `).join("");
+
+      // ------------------------------
+      // Gráfico de barras - % acerto por questão
+      // ------------------------------
+      const ctx = document.getElementById("graficoQuestoes").getContext("2d");
+      const labels = data.questoes.map(q => q.questao_id);
+      const values = data.questoes.map(q => q.percentual_acerto);
+
+      new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels: labels,
+          datasets: [{
+            label: "% de Acerto",
+            data: values,
+            backgroundColor: "#003366",
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ctx.raw + "%" } }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: { display: true, text: "% de Acerto" }
+            },
+            x: {
+              title: { display: true, text: "ID da Questão" }
+            }
+          }
+        }
+      });
     }
   </script>
 </body>

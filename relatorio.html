@@ -77,6 +77,12 @@
       color: #666;
     }
 
+    .erro {
+      color: #b00020;
+      text-align: center;
+      font-weight: bold;
+    }
+
     .footer {
       margin-top: 24px;
       font-size: 12px;
@@ -106,7 +112,7 @@ async function carregarRelatorio() {
 
   if (!payload) {
     document.getElementById("conteudo").innerHTML =
-      "<p>Dados de autenticação não encontrados.</p>";
+      "<p class='erro'>Dados de autenticação não encontrados.</p>";
     return;
   }
 
@@ -118,10 +124,17 @@ async function carregarRelatorio() {
 
   try {
     const res = await fetch(url);
-    const data = await res.json();
+    const texto = await res.text();
 
-    if (!Array.isArray(data) || !data.length || !data[0].prova_id) {
-      throw new Error("Resposta inválida do servidor");
+    let data;
+    try {
+      data = JSON.parse(texto);
+    } catch {
+      throw new Error("Servidor retornou resposta não-JSON");
+    }
+
+    if (!Array.isArray(data) || !data[0] || !data[0].alunos) {
+      throw new Error("Formato de resposta inesperado");
     }
 
     renderizarRelatorio(data[0]);
@@ -129,22 +142,8 @@ async function carregarRelatorio() {
   } catch (e) {
     console.error("Erro no relatório:", e);
     document.getElementById("conteudo").innerHTML =
-      "<p>Erro ao carregar relatório.</p>";
+      `<p class="erro">Erro ao carregar relatório.<br>${e.message}</p>`;
   }
-}
-
-function calcularQuartis(valores) {
-  if (!valores.length) return { q1: 0, q2: 0, q3: 0 };
-
-  valores.sort((a, b) => a - b);
-
-  const pos = p => Math.floor((valores.length - 1) * p);
-
-  return {
-    q1: valores[pos(0.25)],
-    q2: valores[pos(0.50)],
-    q3: valores[pos(0.75)]
-  };
 }
 
 function renderizarRelatorio(d) {
@@ -154,9 +153,6 @@ function renderizarRelatorio(d) {
     try { violacoes = JSON.parse(a.violacoes || "{}"); } catch {}
     return { ...a, violacoes };
   });
-
-  const notas = alunos.map(a => a.nota);
-  const { q1, q2, q3 } = calcularQuartis([...notas]);
 
   const html = `
     <div class="card">
@@ -179,12 +175,6 @@ function renderizarRelatorio(d) {
     <div class="card">
       <h2>Percentual de Acerto por Questão</h2>
       <canvas id="graficoQuestoes"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>Distribuição Estatística das Notas</h2>
-      <canvas id="graficoQuartis"></canvas>
-      <p><strong>Q1:</strong> ${q1} | <strong>Mediana:</strong> ${q2} | <strong>Q3:</strong> ${q3}</p>
     </div>
 
     <div class="card">
@@ -223,32 +213,13 @@ function renderizarRelatorio(d) {
   new Chart(document.getElementById("graficoQuestoes"), {
     type: "bar",
     data: {
-      labels: d.questoes.map(q => q.questao_id.slice(11, 19)),
+      labels: d.questoes.map((_, i) => `Q${i + 1}`),
       datasets: [{
         label: "% de acerto",
-        data: d.questoes.map(q => q.percentual_acerto),
-        backgroundColor: "#003366"
+        data: d.questoes.map(q => q.percentual_acerto)
       }]
     },
-    options: {
-      scales: { y: { beginAtZero: true, max: 100 } }
-    }
-  });
-
-  new Chart(document.getElementById("graficoQuartis"), {
-    type: "bar",
-    data: {
-      labels: ["Notas"],
-      datasets: [
-        { label: "Q1", data: [q1], backgroundColor: "#90caf9" },
-        { label: "Mediana", data: [q2], backgroundColor: "#42a5f5" },
-        { label: "Q3", data: [q3], backgroundColor: "#1e88e5" }
-      ]
-    },
-    options: {
-      plugins: { legend: { position: "bottom" } },
-      scales: { y: { beginAtZero: true } }
-    }
+    options: { scales: { y: { beginAtZero: true, max: 100 } } }
   });
 }
 

@@ -9,17 +9,36 @@
       font-family: Arial, Helvetica, sans-serif;
       background-color: #f2f4f7;
       margin: 0;
-      padding: 20px;
+      padding: 0;
+    }
+
+    header {
+      background-color: #003366;
+      color: #fff;
+      padding: 16px 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+
+    header h2 {
+      margin: 4px 0 0;
+      font-size: 1rem;
+      font-weight: normal;
     }
 
     .container {
       max-width: 900px;
-      margin: auto;
+      margin: 20px auto;
+      padding: 0 20px;
     }
 
-    h2, h3 {
+    h3 {
       color: #003366;
-      text-align: center;
+      margin-top: 0;
     }
 
     .summary, table {
@@ -67,8 +86,14 @@
   </style>
 </head>
 <body>
+  <!-- Cabeçalho -->
+  <header>
+    <h1>Universidade Federal Fluminense</h1>
+    <h2>Sistema de Prova Digital</h2>
+  </header>
+
   <div class="container">
-    <h2>Dashboard da Prova</h2>
+    <h3>Dashboard da Prova</h3>
 
     <!-- Resumo da prova -->
     <div class="section summary" id="resumoProva"></div>

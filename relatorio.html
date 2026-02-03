@@ -5,12 +5,10 @@
   <title>Relatório Gerencial – Prova Digital</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
   <style>
     body {
       font-family: Arial, Helvetica, sans-serif;
-      background: #f2f4f7;
+      background-color: #f2f4f7;
       margin: 0;
       padding: 24px;
       color: #111;
@@ -18,27 +16,28 @@
 
     h1, h2 {
       color: #003366;
+      margin-top: 0;
     }
 
     .card {
-      background: #fff;
+      background: #ffffff;
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,.08);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       gap: 16px;
     }
 
     .metric {
       text-align: center;
       padding: 14px;
-      background: #f8f9fb;
       border-radius: 6px;
+      background: #f8f9fb;
     }
 
     .metric strong {
@@ -70,23 +69,18 @@
       font-size: 12px;
     }
 
-    .loading {
-      text-align: center;
-      color: #666;
-      font-size: 1.1rem;
-    }
-
-    .erro {
-      text-align: center;
-      color: #b00020;
-      font-weight: bold;
-    }
-
     .footer {
       margin-top: 24px;
       font-size: 12px;
       color: #666;
       text-align: center;
+    }
+
+    .error {
+      color: #b00020;
+      font-weight: bold;
+      text-align: center;
+      margin-top: 40px;
     }
   </style>
 </head>
@@ -96,36 +90,95 @@
 <h1>Relatório Gerencial da Prova Digital</h1>
 <p>Universidade Federal Fluminense</p>
 
-<div id="conteudo" class="loading">
-  Carregando relatório...
-</div>
+<div id="conteudo"></div>
 
 <div class="footer">
   Relatório gerado automaticamente pelo sistema de provas digitais
 </div>
 
 <script>
-async function carregarRelatorio() {
+  const container = document.getElementById("conteudo");
 
-  const payload = JSON.parse(localStorage.getItem("relatorio_payload"));
+  const dados = JSON.parse(localStorage.getItem("relatorio_dados"));
 
-  if (!payload) {
-    mostrarErro("Dados de autenticação não encontrados.");
-    return;
+  if (!dados) {
+    container.innerHTML =
+      "<p class='error'>Dados do relatório não encontrados. Retorne à página inicial.</p>";
+    throw new Error("relatorio_dados ausente");
   }
 
-  const url =
-    "https://webhook.artideia.com.br/webhook/relatorio_professor" +
-    `?email=${encodeURIComponent(payload.email)}` +
-    `&senha=${encodeURIComponent(payload.senha)}` +
-    `&prova_id=${encodeURIComponent(payload.prova_id)}`;
+  // ===============================
+  // PROCESSA ALUNOS E VIOLAÇÕES
+  // ===============================
+  const alunos = dados.alunos.map(a => {
+    let violacoes = {};
+    try {
+      violacoes = typeof a.violacoes === "string"
+        ? JSON.parse(a.violacoes)
+        : a.violacoes || {};
+    } catch {
+      violacoes = {};
+    }
 
-  try {
-    const res = await fetch(url);
+    return { ...a, violacoes };
+  });
 
-    if (!res.ok) throw new Error("Erro HTTP");
+  // ===============================
+  // HTML
+  // ===============================
+  container.innerHTML = `
+    <div class="card">
+      <div class="grid">
+        <div class="metric">
+          <strong>${dados.total_alunos}</strong>
+          Alunos avaliados
+        </div>
+        <div class="metric">
+          <strong>${dados.media_turma}</strong>
+          Média da turma
+        </div>
+        <div class="metric">
+          <strong>${dados.tempo_medio_min} min</strong>
+          Tempo médio
+        </div>
+      </div>
+    </div>
 
-    const bruto = await res.json();
+    <div class="card">
+      <h2>Resultados por Aluno</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Matrícula</th>
+            <th>Nota</th>
+            <th>Tempo (min)</th>
+            <th>Violações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${alunos.map(a => `
+            <tr>
+              <td>${a.nome}</td>
+              <td>${a.matricula}</td>
+              <td>${a.nota}</td>
+              <td>${a.duracao_min}</td>
+              <td class="violacao">
+                ${
+                  Object.keys(a.violacoes).length
+                    ? Object.entries(a.violacoes)
+                        .map(v => `${v[0]} (${v[1]})`)
+                        .join("<br>")
+                    : "—"
+                }
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+</script>
 
-    // 🔑 NORMALIZAÇÃO DEFINITIVA
-    const
+</body>
+</html>

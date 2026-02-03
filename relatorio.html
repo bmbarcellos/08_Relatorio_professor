@@ -2,308 +2,309 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Relatório Gerencial – Prova Digital</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relatório da Prova – Universidade Federal Fluminense</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-  <!-- Boxplot plugin -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-boxplot@4.4.0/dist/chartjs-chart-boxplot.min.js"></script>
 
   <style>
     body {
-      font-family: Arial, Helvetica, sans-serif;
-      background-color: #f2f4f7;
       margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f4f6f8;
+      color: #1a1a1a;
+    }
+
+    header {
+      background-color: #003366;
+      color: #fff;
+      padding: 16px 24px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .container {
       padding: 24px;
-      color: #111;
+      max-width: 1200px;
+      margin: auto;
     }
 
-    h1 {
-      color: #003366;
-      margin-bottom: 4px;
-    }
-
-    h2 {
-      margin-top: 32px;
-      color: #003366;
-    }
-
-    .card {
-      background: #ffffff;
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-    }
-
-    .grid {
+    .kpis {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 16px;
+      margin-bottom: 32px;
     }
 
-    .metric {
-      text-align: center;
-      padding: 14px;
-      border-radius: 6px;
-      background: #f8f9fb;
+    .kpi {
+      background: #fff;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     }
 
-    .metric strong {
-      display: block;
-      font-size: 1.8rem;
+    .kpi h3 {
+      margin: 0;
+      font-size: 14px;
+      color: #555;
+    }
+
+    .kpi p {
+      margin: 8px 0 0;
+      font-size: 24px;
+      font-weight: bold;
       color: #003366;
+    }
+
+    .grafico {
+      background: #fff;
+      padding: 24px;
+      border-radius: 8px;
+      margin-bottom: 32px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 12px;
+      background: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      border-radius: 8px;
+      overflow: hidden;
     }
 
     th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      font-size: 13px;
+      padding: 12px;
+      border-bottom: 1px solid #ddd;
       text-align: center;
+      font-size: 14px;
     }
 
     th {
-      background: #e9eef3;
+      background-color: #003366;
+      color: #fff;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    tr.violou {
+      background-color: #fff1f1;
     }
 
     .violacao {
-      color: #b00020;
-      font-weight: bold;
-    }
-
-    .loading {
-      text-align: center;
-      font-size: 1.1rem;
-      color: #666;
-    }
-
-    .footer {
-      margin-top: 24px;
       font-size: 12px;
-      color: #666;
+      color: #b00020;
+      line-height: 1.4;
+    }
+
+    footer {
+      margin-top: 48px;
       text-align: center;
+      font-size: 12px;
+      color: #777;
     }
   </style>
 </head>
 
 <body>
 
-<h1>Relatório Gerencial da Prova Digital</h1>
-<p>Universidade Federal Fluminense</p>
+<header>
+  Universidade Federal Fluminense – Relatório da Prova
+</header>
 
-<div id="conteudo" class="loading">
-  Carregando relatório...
+<div class="container" id="conteudo">
+  <p>Carregando relatório…</p>
 </div>
 
-<div class="footer">
-  Relatório gerado automaticamente pelo sistema de provas digitais
-</div>
+<footer>
+  Sistema de Provas Digitais – UFF
+</footer>
 
 <script>
-  async function carregarRelatorio() {
+/* ===============================
+   UTILIDADES
+================================ */
 
-    const payload = JSON.parse(localStorage.getItem("relatorio_payload"));
+function parseViolacoes(v) {
+  if (!v) return {};
+  if (typeof v === "object") return v;
+  try {
+    return JSON.parse(v);
+  } catch {
+    return {};
+  }
+}
 
-    if (!payload) {
+/* ===============================
+   BUSCA DADOS
+================================ */
+
+async function carregarRelatorio() {
+  const payload = localStorage.getItem("relatorio_payload");
+
+  if (!payload) {
+    document.getElementById("conteudo").innerHTML =
+      "<p>Dados do relatório não encontrados.</p>";
+    return;
+  }
+
+  let params;
+  try {
+    params = JSON.parse(payload);
+  } catch {
+    document.getElementById("conteudo").innerHTML =
+      "<p>Payload inválido.</p>";
+    return;
+  }
+
+  const url = `https://webhook.artideia.com.br/webhook/relatorio_professor?email=${encodeURIComponent(params.email)}&senha=${encodeURIComponent(params.senha)}&prova_id=${encodeURIComponent(params.prova_id)}`;
+
+  try {
+    const res = await fetch(url);
+    const text = await res.text();
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
       document.getElementById("conteudo").innerHTML =
-        "<p>Dados de autenticação não encontrados.</p>";
+        `<p>${text}</p>`;
       return;
     }
 
-    try {
-      const res = await fetch(
-        "https://webhook.artideia.com.br/webhook/relatorio_professor",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        }
-      );
-
-      const data = await res.json();
-      renderizarRelatorio(data);
-
-    } catch (e) {
-      document.getElementById("conteudo").innerHTML =
-        "<p>Erro ao carregar relatório.</p>";
+    if (Array.isArray(data)) {
+      data = data[0];
     }
+
+    renderizarRelatorio(data);
+    localStorage.removeItem("relatorio_payload");
+
+  } catch (e) {
+    document.getElementById("conteudo").innerHTML =
+      "<p>Erro ao carregar o relatório.</p>";
   }
+}
 
-  function renderizarRelatorio(d) {
+/* ===============================
+   RENDERIZAÇÃO
+================================ */
 
-    const html = `
-      <div class="card">
-        <div class="grid">
-          <div class="metric">
-            <strong>${d.total_alunos}</strong>
-            Alunos avaliados
-          </div>
+function renderizarRelatorio(d) {
 
-          <div class="metric">
-            <strong>${d.media_turma}</strong>
-            Média da turma
-          </div>
+  const mediaAcerto =
+    d.questoes.reduce((s, q) => s + q.percentual_acerto, 0) / d.questoes.length;
 
-          <div class="metric">
-            <strong>${d.tempo_medio_min} min</strong>
-            Tempo médio
-          </div>
-        </div>
+  const html = `
+    <div class="kpis">
+      <div class="kpi">
+        <h3>Total de alunos</h3>
+        <p>${d.total_alunos}</p>
       </div>
-
-      <div class="card">
-        <h2>Percentual de Acerto por Questão</h2>
-        <canvas id="graficoQuestoes" height="120"></canvas>
+      <div class="kpi">
+        <h3>Média da turma</h3>
+        <p>${d.media_turma.toFixed(2)}</p>
       </div>
-
-      <div class="card">
-        <h2>Distribuição das Notas (Boxplot)</h2>
-        <canvas id="graficoBoxplot" height="120"></canvas>
-        <p style="font-size:12px;color:#555">
-          Pontos fora da caixa representam possíveis outliers.
-        </p>
+      <div class="kpi">
+        <h3>Maior nota</h3>
+        <p>${d.maior_nota}</p>
       </div>
-
-      <div class="card">
-        <h2>Notas por Aluno</h2>
-        <canvas id="graficoNotas" height="120"></canvas>
+      <div class="kpi">
+        <h3>Menor nota</h3>
+        <p>${d.menor_nota}</p>
       </div>
-
-      <div class="card">
-        <h2>Tempo de Prova por Aluno</h2>
-        <canvas id="graficoTempo" height="120"></canvas>
+      <div class="kpi">
+        <h3>Acerto médio</h3>
+        <p>${mediaAcerto.toFixed(1)}%</p>
       </div>
+    </div>
 
-      <div class="card">
-        <h2>Resultados por Aluno</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Matrícula</th>
-              <th>Nota</th>
-              <th>Tempo (min)</th>
-              <th>Violações</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${d.alunos.map(a => `
-              <tr>
-                <td>${a.nome}</td>
-                <td>${a.matricula}</td>
+    <div class="grafico">
+      <canvas id="graficoQuestoes"></canvas>
+    </div>
+
+    <div class="grafico">
+      <canvas id="boxplotNotas"></canvas>
+    </div>
+
+    <h2>Resultados individuais</h2>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Aluno</th>
+          <th>Nota</th>
+          <th>Violações</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${d.alunos
+          .sort((a, b) => b.nota - a.nota)
+          .map(a => {
+            const viol = parseViolacoes(a.violacoes);
+            return `
+              <tr class="${Object.keys(viol).length ? "violou" : ""}">
+                <td>${a.aluno}</td>
                 <td>${a.nota}</td>
-                <td>${a.duracao_min}</td>
                 <td class="violacao">
-                  ${Object.keys(a.violacoes || {}).length
-                    ? JSON.stringify(a.violacoes)
+                  ${Object.keys(viol).length
+                    ? Object.entries(viol)
+                        .map(([k, v]) => `${k} (${v})`)
+                        .join("<br>")
                     : "—"}
                 </td>
               </tr>
-            `).join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
+            `;
+          }).join("")}
+      </tbody>
+    </table>
+  `;
 
-    document.getElementById("conteudo").innerHTML = html;
+  document.getElementById("conteudo").innerHTML = html;
 
-    // ===============================
-    // DADOS
-    // ===============================
-    const notas = d.alunos.map(a => a.nota);
+  /* ===============================
+     GRÁFICOS
+  ================================ */
 
-    // ===============================
-    // GRÁFICO: QUESTÕES
-    // ===============================
-    new Chart(document.getElementById("graficoQuestoes"), {
-      type: "bar",
-      data: {
-        labels: d.questoes.map(q => q.questao_id),
-        datasets: [{
-          label: "% de acerto",
-          data: d.questoes.map(q => q.percentual_acerto),
-          backgroundColor: "#003366"
-        }]
-      },
-      options: {
-        scales: { y: { beginAtZero: true, max: 100 } }
+  new Chart(document.getElementById("graficoQuestoes"), {
+    type: "bar",
+    data: {
+      labels: d.questoes.map((_, i) => `Q${i + 1}`),
+      datasets: [{
+        label: "Percentual de acerto (%)",
+        data: d.questoes.map(q => q.percentual_acerto)
+      }]
+    },
+    options: {
+      scales: {
+        y: { beginAtZero: true, max: 100 }
       }
-    });
+    }
+  });
 
-    // ===============================
-    // GRÁFICO: BOXPLOT DE NOTAS
-    // ===============================
-    new Chart(document.getElementById("graficoBoxplot"), {
-      type: "boxplot",
-      data: {
-        labels: ["Notas da turma"],
-        datasets: [{
-          label: "Distribuição das notas",
-          backgroundColor: "#90caf9",
-          borderColor: "#003366",
-          borderWidth: 1,
-          outlierColor: "#b00020",
-          padding: 10,
-          itemRadius: 4,
-          data: [notas]
-        }]
-      },
-      options: {
-        plugins: {
-          legend: { display: false }
-        },
-        scales: {
-          y: { beginAtZero: true }
-        }
+  new Chart(document.getElementById("boxplotNotas"), {
+    type: "boxplot",
+    data: {
+      labels: ["Distribuição de notas"],
+      datasets: [{
+        label: "Notas",
+        data: [d.alunos.map(a => a.nota)]
+      }]
+    },
+    options: {
+      scales: {
+        y: { beginAtZero: true, max: 10 }
       }
-    });
+    }
+  });
+}
 
-    // ===============================
-    // GRÁFICO: NOTAS POR ALUNO
-    // ===============================
-    new Chart(document.getElementById("graficoNotas"), {
-      type: "bar",
-      data: {
-        labels: d.alunos.map(a => a.nome),
-        datasets: [{
-          label: "Nota",
-          data: notas,
-          backgroundColor: "#00509e"
-        }]
-      },
-      options: {
-        scales: { y: { beginAtZero: true } }
-      }
-    });
+/* ===============================
+   INIT
+================================ */
 
-    // ===============================
-    // GRÁFICO: TEMPO
-    // ===============================
-    new Chart(document.getElementById("graficoTempo"), {
-      type: "bar",
-      data: {
-        labels: d.alunos.map(a => a.nome),
-        datasets: [{
-          label: "Tempo (min)",
-          data: d.alunos.map(a => a.duracao_min),
-          backgroundColor: "#6a1b9a"
-        }]
-      },
-      options: {
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-  }
-
-  carregarRelatorio();
+carregarRelatorio();
 </script>
 
 </body>

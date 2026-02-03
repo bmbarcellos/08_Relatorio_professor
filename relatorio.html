@@ -2,235 +2,86 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Relatório Gerencial – Prova Digital</title>
+  <title>Relatório – Teste de Conectividade</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     body {
       font-family: Arial, Helvetica, sans-serif;
-      background-color: #f2f4f7;
-      margin: 0;
-      padding: 24px;
-      color: #111;
-    }
-
-    h1, h2 {
-      color: #003366;
-      margin-top: 0;
-    }
-
-    .card {
-      background: #ffffff;
-      border-radius: 8px;
+      background: #f2f4f7;
       padding: 20px;
-      margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
-    }
-
-    .metric {
-      text-align: center;
-      padding: 14px;
-      border-radius: 6px;
-      background: #f8f9fb;
-    }
-
-    .metric strong {
-      display: block;
-      font-size: 1.8rem;
+    h1 {
       color: #003366;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 12px;
+    pre {
+      background: #111;
+      color: #0f0;
+      padding: 16px;
+      border-radius: 6px;
+      overflow-x: auto;
       font-size: 13px;
     }
 
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
-    }
-
-    th {
-      background: #e9eef3;
-    }
-
-    .violacao {
-      color: #b00020;
-      font-weight: bold;
-      font-size: 12px;
-    }
-
     .erro {
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
       color: #b00020;
       font-weight: bold;
-      text-align: center;
-    }
-
-    .footer {
-      margin-top: 24px;
-      font-size: 12px;
-      color: #666;
-      text-align: center;
     }
   </style>
 </head>
 
 <body>
 
-<h1>Relatório Gerencial da Prova Digital</h1>
+<h1>Relatório – Teste de Conectividade</h1>
 <p>Universidade Federal Fluminense</p>
 
-<div id="conteudo"></div>
+<div id="status">Iniciando teste...</div>
 
-<div class="footer">
-  Relatório gerado automaticamente pelo sistema de provas digitais
-</div>
+<h3>Resposta do workflow:</h3>
+<pre id="saida">Aguardando...</pre>
 
 <script>
-function carregarRelatorio() {
-  const bruto = localStorage.getItem("relatorio_dados");
+(async function () {
 
-  if (!bruto) {
-    mostrarErro("Dados do relatório não encontrados. Gere o relatório novamente.");
+  console.log("JS NOVO CARREGADO");
+
+  const status = document.getElementById("status");
+  const saida = document.getElementById("saida");
+
+  const payload = localStorage.getItem("relatorio_payload");
+
+  if (!payload) {
+    status.innerHTML = "<span class='erro'>Payload não encontrado no localStorage.</span>";
     return;
   }
 
   let dados;
   try {
-    dados = JSON.parse(bruto);
-  } catch {
-    mostrarErro("Erro ao interpretar os dados do relatório.");
+    dados = JSON.parse(payload);
+  } catch (e) {
+    status.innerHTML = "<span class='erro'>Erro ao ler payload.</span>";
     return;
   }
 
-  if (!Array.isArray(dados) || !dados.length) {
-    mostrarErro("Formato de dados inválido.");
-    return;
-  }
+  status.innerHTML = "Payload encontrado. Chamando workflow...";
 
-  renderizarRelatorio(dados[0]);
-}
+  const url =
+    "https://webhook.artideia.com.br/webhook/relatorio_professor" +
+    `?email=${encodeURIComponent(dados.email)}` +
+    `&senha=${encodeURIComponent(dados.senha)}` +
+    `&prova_id=${encodeURIComponent(dados.prova_id)}`;
 
-function mostrarErro(msg) {
-  document.getElementById("conteudo").innerHTML =
-    `<div class="erro">${msg}</div>`;
-}
+  try {
+    const res = await fetch(url);
 
-function renderizarRelatorio(d) {
+    const texto = await res.text();
 
-  const alunos = d.alunos.map(a => {
-    let violacoes = {};
-    try { violacoes = JSON.parse(a.violacoes || "{}"); } catch {}
-    return { ...a, violacoes };
-  });
+    status.innerHTML = "Resposta recebida com sucesso ✔";
 
-  const notas = alunos.map(a => a.nota);
+    saida.textContent = texto;
 
-  document.getElementById("conteudo").innerHTML = `
-    <div class="card">
-      <div class="grid">
-        <div class="metric">
-          <strong>${d.total_alunos}</strong>
-          Alunos avaliados
-        </div>
-        <div class="metric">
-          <strong>${d.media_turma}</strong>
-          Média da turma
-        </div>
-        <div class="metric">
-          <strong>${d.tempo_medio_min} min</strong>
-          Tempo médio
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Percentual de Acerto por Questão</h2>
-      <canvas id="graficoQuestoes"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>Notas dos Alunos</h2>
-      <canvas id="graficoNotas"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>Resultados por Aluno</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Matrícula</th>
-            <th>Nota</th>
-            <th>Tempo (min)</th>
-            <th>Violações</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${alunos.map(a => `
-            <tr>
-              <td>${a.nome}</td>
-              <td>${a.matricula}</td>
-              <td>${a.nota}</td>
-              <td>${a.duracao_min}</td>
-              <td class="violacao">
-                ${Object.keys(a.violacoes).length
-                  ? Object.entries(a.violacoes).map(v => `${v[0]} (${v[1]})`).join("<br>")
-                  : "—"}
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  new Chart(document.getElementById("graficoQuestoes"), {
-    type: "bar",
-    data: {
-      labels: d.questoes.map((q, i) => `Q${i + 1}`),
-      datasets: [{
-        label: "% de acerto",
-        data: d.questoes.map(q => q.percentual_acerto)
-      }]
-    },
-    options: {
-      scales: { y: { beginAtZero: true, max: 100 } }
-    }
-  });
-
-  new Chart(document.getElementById("graficoNotas"), {
-    type: "bar",
-    data: {
-      labels: alunos.map(a => a.nome),
-      datasets: [{
-        label: "Nota",
-        data: notas
-      }]
-    },
-    options: {
-      scales: { y: { beginAtZero: true, max: 10 } }
-    }
-  });
-}
-
-carregarRelatorio();
-</script>
-
-</body>
-</html>
+  } catch (err) {
+    console.error(err);
+    status.innerHTML = "<sp

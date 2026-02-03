@@ -23,7 +23,7 @@
       width: 100%;
       max-width: 380px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      border-top: 6px solid #003366; /* Azul UFF */
+      border-top: 6px solid #003366;
     }
 
     h2 {
@@ -57,11 +57,6 @@
       font-size: 1rem;
     }
 
-    input:focus {
-      outline: none;
-      border-color: #00509e;
-    }
-
     button {
       width: 100%;
       padding: 10px;
@@ -74,26 +69,15 @@
       cursor: pointer;
     }
 
-    button:hover {
-      background-color: #00509e;
-    }
-
     button:disabled {
       background-color: #999;
       cursor: not-allowed;
     }
 
-    .footer {
-      margin-top: 16px;
-      font-size: 0.8rem;
-      text-align: center;
-      color: #666;
-    }
-
     .loading {
       display: none;
-      text-align: center;
       margin-top: 12px;
+      text-align: center;
       font-size: 0.85rem;
       color: #003366;
     }
@@ -103,7 +87,13 @@
       font-size: 0.85rem;
       color: #b00020;
       text-align: center;
-      white-space: pre-line;
+    }
+
+    .footer {
+      margin-top: 16px;
+      font-size: 0.8rem;
+      text-align: center;
+      color: #666;
     }
   </style>
 </head>
@@ -112,33 +102,17 @@
 
   <div class="container">
     <h2>Relatório de Prova Digital</h2>
-    <p class="subtitle">
-      Acesso ao relatório gerencial da avaliação
-    </p>
+    <p class="subtitle">Acesso ao relatório gerencial da avaliação</p>
 
     <form id="formRelatorio">
       <label for="email">E-mail institucional</label>
-      <input
-        type="email"
-        id="email"
-        placeholder="nome@id.uff.br"
-        required
-      >
+      <input type="email" id="email" required>
 
       <label for="matricula">Matrícula</label>
-      <input
-        type="number"
-        id="matricula"
-        required
-      >
+      <input type="number" id="matricula" required>
 
       <label for="prova_id">ID da prova</label>
-      <input
-        type="text"
-        id="prova_id"
-        placeholder="PROVA-2026-01"
-        required
-      >
+      <input type="text" id="prova_id" required>
 
       <button type="submit">Gerar relatório</button>
     </form>
@@ -155,6 +129,8 @@
   </div>
 
   <script>
+    console.log("JS NOVO CARREGADO");
+
     const form = document.getElementById("formRelatorio");
     const loading = document.getElementById("loading");
     const errorBox = document.getElementById("error");
@@ -181,37 +157,29 @@
         const res = await fetch(url);
 
         if (!res.ok) {
-          throw new Error(`Erro HTTP ${res.status}`);
+          throw new Error("Erro HTTP " + res.status);
         }
 
-        const text = await res.text();
+        const data = await res.json();
 
-        let data;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          throw new Error("Resposta não é JSON:\n" + text);
+        // ÚNICA validação necessária
+        if (!Array.isArray(data) || !data[0] || !data[0].prova_id) {
+          throw new Error("Formato inesperado");
         }
 
-        if (!Array.isArray(data) || !data.length) {
-          throw new Error("Formato de resposta inesperado");
-        }
-
-        // salva dados do relatório para a página 2
+        // salva APENAS o objeto da prova
         localStorage.setItem(
           "relatorio_dados",
           JSON.stringify(data[0])
         );
 
-        // redireciona somente após sucesso real
+        // redireciona
         window.location.href = "relatorio.html";
 
       } catch (err) {
-        console.error("Erro real:", err);
-
+        console.error(err);
         errorBox.textContent =
-          err.message || "Erro inesperado ao gerar relatório.";
-
+          "Não foi possível gerar o relatório. Verifique os dados informados.";
         loading.style.display = "none";
         button.disabled = false;
       }

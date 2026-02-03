@@ -5,7 +5,7 @@
   <title>Relatório Gerencial – Prova Digital</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Chart.js (estável, sem plugins) -->
+  <!-- Chart.js estável -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
@@ -77,6 +77,12 @@
       color: #666;
     }
 
+    .erro {
+      color: #b00020;
+      text-align: center;
+      font-weight: bold;
+    }
+
     .footer {
       margin-top: 24px;
       font-size: 12px;
@@ -105,8 +111,7 @@ async function carregarRelatorio() {
   const payload = JSON.parse(localStorage.getItem("relatorio_payload"));
 
   if (!payload) {
-    document.getElementById("conteudo").innerHTML =
-      "<p>Dados de autenticação não encontrados.</p>";
+    mostrarErro("Dados de autenticação não encontrados.");
     return;
   }
 
@@ -118,116 +123,20 @@ async function carregarRelatorio() {
 
   try {
     const res = await fetch(url);
-
-    if (!res.ok) {
-      throw new Error("Falha HTTP: " + res.status);
-    }
-
     const json = await res.json();
 
-    // 🔒 validação robusta
-    if (json.message) {
-      throw new Error(json.message);
+    if (!Array.isArray(json) || json.length === 0) {
+      throw new Error("Formato de resposta inválido");
     }
 
-    if (!Array.isArray(json) || !json.length) {
-      throw new Error("Formato de resposta inesperado");
-    }
-
-    renderizarRelatorio(json[0]);
+    renderizar(json[0]);
 
   } catch (e) {
-    console.error("Erro no relatório:", e);
-    document.getElementById("conteudo").innerHTML =
-      "<p><strong>Erro ao carregar relatório.</strong><br>" +
-      "Verifique se a prova está liberada e os dados estão corretos.</p>";
+    console.error(e);
+    mostrarErro("Erro ao carregar relatório. Verifique o status da prova.");
   }
 }
 
-function renderizarRelatorio(d) {
-
-  const alunos = d.alunos.map(a => {
-    let violacoes = {};
-    try { violacoes = JSON.parse(a.violacoes || "{}"); } catch {}
-    return { ...a, violacoes };
-  });
-
-  const notas = alunos.map(a => a.nota);
-
-  const html = `
-    <div class="card">
-      <div class="grid">
-        <div class="metric">
-          <strong>${d.total_alunos}</strong>
-          Alunos avaliados
-        </div>
-        <div class="metric">
-          <strong>${d.media_turma}</strong>
-          Média da turma
-        </div>
-        <div class="metric">
-          <strong>${d.tempo_medio_min} min</strong>
-          Tempo médio
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h2>Percentual de Acerto por Questão</h2>
-      <canvas id="graficoQuestoes"></canvas>
-    </div>
-
-    <div class="card">
-      <h2>Resultados por Aluno</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Matrícula</th>
-            <th>Nota</th>
-            <th>Tempo</th>
-            <th>Violações</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${alunos.map(a => `
-            <tr>
-              <td>${a.nome}</td>
-              <td>${a.matricula}</td>
-              <td>${a.nota}</td>
-              <td>${a.duracao_min}</td>
-              <td class="violacao">
-                ${Object.keys(a.violacoes).length
-                  ? Object.entries(a.violacoes).map(v => `${v[0]} (${v[1]})`).join("<br>")
-                  : "—"}
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  document.getElementById("conteudo").innerHTML = html;
-
-  new Chart(document.getElementById("graficoQuestoes"), {
-    type: "bar",
-    data: {
-      labels: d.questoes.map(q => q.questao_id.slice(11,19)),
-      datasets: [{
-        label: "% de acerto",
-        data: d.questoes.map(q => q.percentual_acerto),
-        backgroundColor: "#003366"
-      }]
-    },
-    options: {
-      scales: { y: { beginAtZero: true, max: 100 } }
-    }
-  });
-}
-
-carregarRelatorio();
-</script>
-
-</body>
-</html>
+function mostrarErro(msg) {
+  document.getElementById("conteudo").innerHTML =
+    `<p class="erro">${msg}</

@@ -23,7 +23,7 @@
       width: 100%;
       max-width: 380px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      border-top: 6px solid #003366; /* Azul UFF */
+      border-top: 6px solid #003366;
     }
 
     h2 {
@@ -97,6 +97,13 @@
       font-size: 0.85rem;
       color: #003366;
     }
+
+    .error {
+      margin-top: 12px;
+      font-size: 0.85rem;
+      color: #b00020;
+      text-align: center;
+    }
   </style>
 </head>
 
@@ -104,43 +111,26 @@
 
   <div class="container">
     <h2>Relatório de Prova Digital</h2>
-    <p class="subtitle">
-      Acesso ao relatório gerencial da avaliação
-    </p>
+    <p class="subtitle">Acesso ao relatório gerencial da avaliação</p>
 
     <form id="formRelatorio">
       <label for="email">E-mail institucional</label>
-      <input
-        type="email"
-        id="email"
-        name="email"
-        placeholder="nome@id.uff.br"
-        required
-      >
+      <input type="email" id="email" required>
 
       <label for="matricula">Matrícula</label>
-      <input
-        type="number"
-        id="matricula"
-        name="matricula"
-        required
-      >
+      <input type="number" id="matricula" required>
 
       <label for="prova_id">ID da prova</label>
-      <input
-        type="text"
-        id="prova_id"
-        name="prova_id"
-        placeholder="PROVA-2026-01"
-        required
-      >
+      <input type="text" id="prova_id" required>
 
       <button type="submit">Gerar relatório</button>
     </form>
 
     <div class="loading" id="loading">
-      Gerando relatório, aguarde...
+      Validando acesso e gerando relatório...
     </div>
+
+    <div class="error" id="error"></div>
 
     <div class="footer">
       Universidade Federal Fluminense
@@ -150,35 +140,57 @@
   <script>
     const form = document.getElementById("formRelatorio");
     const loading = document.getElementById("loading");
+    const errorBox = document.getElementById("error");
     const button = form.querySelector("button");
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       loading.style.display = "block";
+      errorBox.textContent = "";
       button.disabled = true;
 
-      const payload = {
-        email: document.getElementById("email").value,
-        senha: Number(document.getElementById("matricula").value),
-        prova_id: document.getElementById("prova_id").value
-      };
+      const email = document.getElementById("email").value.trim();
+      const senha = document.getElementById("matricula").value.trim();
+      const prova_id = document.getElementById("prova_id").value.trim();
 
-      // limpa payload anterior
-      localStorage.removeItem("relatorio_payload");
+      const url =
+        "https://webhook.artideia.com.br/webhook/relatorio_professor" +
+        `?email=${encodeURIComponent(email)}` +
+        `&senha=${encodeURIComponent(senha)}` +
+        `&prova_id=${encodeURIComponent(prova_id)}`;
 
-      // salva novo payload
-      localStorage.setItem(
-        "relatorio_payload",
-        JSON.stringify(payload)
-      );
+      try {
+        const res = await fetch(url);
 
-      // redireciona para a página 2 (relatório gerencial)
-      window.location.href = "relatorio.html";
+        if (!res.ok) {
+          throw new Error("Falha ao acessar o servidor");
+        }
+
+        const data = await res.json();
+
+        if (!Array.isArray(data) || !data.length) {
+          throw new Error("Resposta inválida do servidor");
+        }
+
+        // salva relatório COMPLETO para a página 2
+        localStorage.setItem(
+          "relatorio_dados",
+          JSON.stringify(data[0])
+        );
+
+        // redireciona somente após sucesso
+        window.location.href = "relatorio.html";
+
+      } catch (err) {
+        console.error(err);
+        errorBox.textContent =
+          "Acesso negado ou prova não encerrada. Verifique os dados.";
+        loading.style.display = "none";
+        button.disabled = false;
+      }
     });
   </script>
 
 </body>
 </html>
-
-

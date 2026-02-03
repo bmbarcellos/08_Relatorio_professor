@@ -17,26 +17,23 @@
       margin: auto;
     }
 
-    h2 {
+    h2, h3 {
       color: #003366;
       text-align: center;
     }
 
-    .summary {
+    .summary, table {
       background-color: #fff;
       padding: 16px;
       border-radius: 8px;
-      margin-bottom: 20px;
       box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      background-color: #fff;
-      border-radius: 8px;
       overflow: hidden;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
 
     th, td {
@@ -82,6 +79,21 @@
         <tbody></tbody>
       </table>
     </div>
+
+    <!-- Tabela de questões -->
+    <div class="section">
+      <h3>Estatísticas das Questões</h3>
+      <table id="tabelaQuestoes">
+        <thead>
+          <tr>
+            <th>ID da Questão</th>
+            <th>Tipo</th>
+            <th>% de Acerto</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 
   <script>
@@ -104,14 +116,24 @@
       `;
 
       // Preenche tabela de alunos
-      const tbody = document.querySelector("#tabelaAlunos tbody");
-      tbody.innerHTML = data.alunos.map(a => `
+      const tbodyAlunos = document.querySelector("#tabelaAlunos tbody");
+      tbodyAlunos.innerHTML = data.alunos.map(a => `
         <tr>
           <td>${a.nome}</td>
           <td>${a.matricula}</td>
           <td>${a.nota}</td>
           <td>${a.duracao_min}</td>
           <td>${a.violacoes}</td>
+        </tr>
+      `).join("");
+
+      // Preenche tabela de questões
+      const tbodyQuestoes = document.querySelector("#tabelaQuestoes tbody");
+      tbodyQuestoes.innerHTML = data.questoes.map(q => `
+        <tr>
+          <td>${q.questao_id}</td>
+          <td>${q.tipo}</td>
+          <td>${q.percentual_acerto}%</td>
         </tr>
       `).join("");
     }

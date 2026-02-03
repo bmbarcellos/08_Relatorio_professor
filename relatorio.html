@@ -5,11 +5,8 @@
   <title>Relatório Gerencial – Prova Digital</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Chart.js -->
+  <!-- Chart.js puro (sem plugins) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-
-  <!-- Boxplot plugin (CORB-safe) -->
-  <script src="https://unpkg.com/chartjs-chart-boxplot@4.4.0/build/index.umd.min.js"></script>
 
   <style>
     body {
@@ -120,7 +117,7 @@ async function carregarRelatorio() {
     `&prova_id=${encodeURIComponent(payload.prova_id)}`;
 
   try {
-    const res = await fetch(url, { mode: "cors" });
+    const res = await fetch(url);
     const data = await res.json();
 
     if (!Array.isArray(data) || !data.length) {
@@ -136,15 +133,24 @@ async function carregarRelatorio() {
   }
 }
 
+function calcularQuartis(valores) {
+  valores.sort((a,b) => a-b);
+  const q1 = valores[Math.floor(valores.length * 0.25)];
+  const q2 = valores[Math.floor(valores.length * 0.50)];
+  const q3 = valores[Math.floor(valores.length * 0.75)];
+  return { q1, q2, q3 };
+}
+
 function renderizarRelatorio(d) {
 
   const alunos = d.alunos.map(a => {
     let violacoes = {};
-    try {
-      violacoes = JSON.parse(a.violacoes || "{}");
-    } catch (_) {}
+    try { violacoes = JSON.parse(a.violacoes || "{}"); } catch {}
     return { ...a, violacoes };
   });
+
+  const notas = alunos.map(a => a.nota);
+  const { q1, q2, q3 } = calcularQuartis([...notas]);
 
   const html = `
     <div class="card">
@@ -170,8 +176,9 @@ function renderizarRelatorio(d) {
     </div>
 
     <div class="card">
-      <h2>Distribuição das Notas (Boxplot)</h2>
-      <canvas id="graficoBoxplot"></canvas>
+      <h2>Distribuição Estatística das Notas</h2>
+      <canvas id="graficoQuartis"></canvas>
+      <p><strong>Q1:</strong> ${q1} | <strong>Mediana:</strong> ${q2} | <strong>Q3:</strong> ${q3}</p>
     </div>
 
     <div class="card">
@@ -213,22 +220,24 @@ function renderizarRelatorio(d) {
       labels: d.questoes.map(q => q.questao_id.slice(11,19)),
       datasets: [{
         label: "% de acerto",
-        data: d.questoes.map(q => q.percentual_acerto),
+        data: d.questoes.map(q => q.percentual_acerto)
       }]
     },
-    options: {
-      scales: { y: { beginAtZero: true, max: 100 } }
-    }
+    options: { scales: { y: { beginAtZero: true, max: 100 } } }
   });
 
-  new Chart(document.getElementById("graficoBoxplot"), {
-    type: "boxplot",
+  new Chart(document.getElementById("graficoQuartis"), {
+    type: "bar",
     data: {
-      labels: ["Notas"],
-      datasets: [{
-        label: "Distribuição",
-        data: [alunos.map(a => a.nota)]
-      }]
+      labels: ["Quartis"],
+      datasets: [
+        { label: "Q1", data: [q1] },
+        { label: "Mediana", data: [q2] },
+        { label: "Q3", data: [q3] }
+      ]
+    },
+    options: {
+      plugins: { legend: { position: "bottom" } }
     }
   });
 }

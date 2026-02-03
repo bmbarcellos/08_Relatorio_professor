@@ -5,7 +5,7 @@
   <title>Relatório Gerencial – Prova Digital</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Chart.js puro -->
+  <!-- Chart.js (estável, sem plugins) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
@@ -77,12 +77,6 @@
       color: #666;
     }
 
-    .erro {
-      color: #b00020;
-      text-align: center;
-      font-weight: bold;
-    }
-
     .footer {
       margin-top: 24px;
       font-size: 12px;
@@ -112,7 +106,7 @@ async function carregarRelatorio() {
 
   if (!payload) {
     document.getElementById("conteudo").innerHTML =
-      "<p class='erro'>Dados de autenticação não encontrados.</p>";
+      "<p>Dados de autenticação não encontrados.</p>";
     return;
   }
 
@@ -124,25 +118,29 @@ async function carregarRelatorio() {
 
   try {
     const res = await fetch(url);
-    const texto = await res.text();
 
-    let data;
-    try {
-      data = JSON.parse(texto);
-    } catch {
-      throw new Error("Servidor retornou resposta não-JSON");
+    if (!res.ok) {
+      throw new Error("Falha HTTP: " + res.status);
     }
 
-    if (!Array.isArray(data) || !data[0] || !data[0].alunos) {
+    const json = await res.json();
+
+    // 🔒 validação robusta
+    if (json.message) {
+      throw new Error(json.message);
+    }
+
+    if (!Array.isArray(json) || !json.length) {
       throw new Error("Formato de resposta inesperado");
     }
 
-    renderizarRelatorio(data[0]);
+    renderizarRelatorio(json[0]);
 
   } catch (e) {
     console.error("Erro no relatório:", e);
     document.getElementById("conteudo").innerHTML =
-      `<p class="erro">Erro ao carregar relatório.<br>${e.message}</p>`;
+      "<p><strong>Erro ao carregar relatório.</strong><br>" +
+      "Verifique se a prova está liberada e os dados estão corretos.</p>";
   }
 }
 
@@ -153,6 +151,8 @@ function renderizarRelatorio(d) {
     try { violacoes = JSON.parse(a.violacoes || "{}"); } catch {}
     return { ...a, violacoes };
   });
+
+  const notas = alunos.map(a => a.nota);
 
   const html = `
     <div class="card">
@@ -213,13 +213,16 @@ function renderizarRelatorio(d) {
   new Chart(document.getElementById("graficoQuestoes"), {
     type: "bar",
     data: {
-      labels: d.questoes.map((_, i) => `Q${i + 1}`),
+      labels: d.questoes.map(q => q.questao_id.slice(11,19)),
       datasets: [{
         label: "% de acerto",
-        data: d.questoes.map(q => q.percentual_acerto)
+        data: d.questoes.map(q => q.percentual_acerto),
+        backgroundColor: "#003366"
       }]
     },
-    options: { scales: { y: { beginAtZero: true, max: 100 } } }
+    options: {
+      scales: { y: { beginAtZero: true, max: 100 } }
+    }
   });
 }
 

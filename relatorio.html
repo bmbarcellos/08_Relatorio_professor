@@ -6,10 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <!-- Boxplot plugin -->
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-boxplot@4.4.0/dist/chartjs-chart-boxplot.min.js"></script>
+  <!-- Boxplot plugin (CORB-safe) -->
+  <script src="https://unpkg.com/chartjs-chart-boxplot@4.4.0/build/index.umd.min.js"></script>
 
   <style>
     body {
@@ -120,7 +120,7 @@ async function carregarRelatorio() {
     `&prova_id=${encodeURIComponent(payload.prova_id)}`;
 
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, { mode: "cors" });
     const data = await res.json();
 
     if (!Array.isArray(data) || !data.length) {
@@ -130,6 +130,7 @@ async function carregarRelatorio() {
     renderizarRelatorio(data[0]);
 
   } catch (e) {
+    console.error(e);
     document.getElementById("conteudo").innerHTML =
       "<p>Erro ao carregar relatório.</p>";
   }
@@ -213,10 +214,11 @@ function renderizarRelatorio(d) {
       datasets: [{
         label: "% de acerto",
         data: d.questoes.map(q => q.percentual_acerto),
-        backgroundColor: "#003366"
       }]
     },
-    options: { scales: { y: { beginAtZero: true, max: 100 } } }
+    options: {
+      scales: { y: { beginAtZero: true, max: 100 } }
+    }
   });
 
   new Chart(document.getElementById("graficoBoxplot"), {
@@ -224,9 +226,8 @@ function renderizarRelatorio(d) {
     data: {
       labels: ["Notas"],
       datasets: [{
-        data: [alunos.map(a => a.nota)],
-        backgroundColor: "#90caf9",
-        borderColor: "#003366"
+        label: "Distribuição",
+        data: [alunos.map(a => a.nota)]
       }]
     }
   });

@@ -5,13 +5,12 @@
   <title>Relatório Gerencial – Prova Digital</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Chart.js estável -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     body {
       font-family: Arial, Helvetica, sans-serif;
-      background-color: #f2f4f7;
+      background: #f2f4f7;
       margin: 0;
       padding: 24px;
       color: #111;
@@ -22,24 +21,24 @@
     }
 
     .card {
-      background: #ffffff;
+      background: #fff;
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 20px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+      box-shadow: 0 4px 10px rgba(0,0,0,.08);
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
       gap: 16px;
     }
 
     .metric {
       text-align: center;
       padding: 14px;
-      border-radius: 6px;
       background: #f8f9fb;
+      border-radius: 6px;
     }
 
     .metric strong {
@@ -73,13 +72,13 @@
 
     .loading {
       text-align: center;
-      font-size: 1.1rem;
       color: #666;
+      font-size: 1.1rem;
     }
 
     .erro {
-      color: #b00020;
       text-align: center;
+      color: #b00020;
       font-weight: bold;
     }
 
@@ -123,20 +122,10 @@ async function carregarRelatorio() {
 
   try {
     const res = await fetch(url);
-    const json = await res.json();
 
-    if (!Array.isArray(json) || json.length === 0) {
-      throw new Error("Formato de resposta inválido");
-    }
+    if (!res.ok) throw new Error("Erro HTTP");
 
-    renderizar(json[0]);
+    const bruto = await res.json();
 
-  } catch (e) {
-    console.error(e);
-    mostrarErro("Erro ao carregar relatório. Verifique o status da prova.");
-  }
-}
-
-function mostrarErro(msg) {
-  document.getElementById("conteudo").innerHTML =
-    `<p class="erro">${msg}</
+    // 🔑 NORMALIZAÇÃO DEFINITIVA
+    const

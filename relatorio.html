@@ -126,10 +126,14 @@
         { method: "GET" }
       );
 
-      const data = await res.json();
+      const text = await res.text();
+console.log("Resposta bruta do webhook:", text);
 
-      // workflow retorna ARRAY
-      renderizarRelatorio(data[0]);
+const data = JSON.parse(text);
+console.log("JSON parseado:", data);
+
+renderizarRelatorio(Array.isArray(data) ? data[0] : data);
+
 
       // limpa payload após uso
       localStorage.removeItem("relatorio_payload");

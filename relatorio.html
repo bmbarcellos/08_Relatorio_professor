@@ -5,6 +5,9 @@
   <title>Relatório Gerencial – Prova Digital</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
   <style>
     body {
       font-family: Arial, Helvetica, sans-serif;
@@ -29,7 +32,7 @@
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
       gap: 16px;
     }
 
@@ -50,12 +53,12 @@
       width: 100%;
       border-collapse: collapse;
       margin-top: 12px;
+      font-size: 13px;
     }
 
     th, td {
       border: 1px solid #ccc;
       padding: 8px;
-      font-size: 13px;
       text-align: center;
     }
 
@@ -69,18 +72,20 @@
       font-size: 12px;
     }
 
+    .erro {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      color: #b00020;
+      font-weight: bold;
+      text-align: center;
+    }
+
     .footer {
       margin-top: 24px;
       font-size: 12px;
       color: #666;
       text-align: center;
-    }
-
-    .error {
-      color: #b00020;
-      font-weight: bold;
-      text-align: center;
-      margin-top: 40px;
     }
   </style>
 </head>
@@ -97,51 +102,71 @@
 </div>
 
 <script>
-  const container = document.getElementById("conteudo");
+function carregarRelatorio() {
+  const bruto = localStorage.getItem("relatorio_dados");
 
-  const dados = JSON.parse(localStorage.getItem("relatorio_dados"));
-
-  if (!dados) {
-    container.innerHTML =
-      "<p class='error'>Dados do relatório não encontrados. Retorne à página inicial.</p>";
-    throw new Error("relatorio_dados ausente");
+  if (!bruto) {
+    mostrarErro("Dados do relatório não encontrados. Gere o relatório novamente.");
+    return;
   }
 
-  // ===============================
-  // PROCESSA ALUNOS E VIOLAÇÕES
-  // ===============================
-  const alunos = dados.alunos.map(a => {
-    let violacoes = {};
-    try {
-      violacoes = typeof a.violacoes === "string"
-        ? JSON.parse(a.violacoes)
-        : a.violacoes || {};
-    } catch {
-      violacoes = {};
-    }
+  let dados;
+  try {
+    dados = JSON.parse(bruto);
+  } catch {
+    mostrarErro("Erro ao interpretar os dados do relatório.");
+    return;
+  }
 
+  if (!Array.isArray(dados) || !dados.length) {
+    mostrarErro("Formato de dados inválido.");
+    return;
+  }
+
+  renderizarRelatorio(dados[0]);
+}
+
+function mostrarErro(msg) {
+  document.getElementById("conteudo").innerHTML =
+    `<div class="erro">${msg}</div>`;
+}
+
+function renderizarRelatorio(d) {
+
+  const alunos = d.alunos.map(a => {
+    let violacoes = {};
+    try { violacoes = JSON.parse(a.violacoes || "{}"); } catch {}
     return { ...a, violacoes };
   });
 
-  // ===============================
-  // HTML
-  // ===============================
-  container.innerHTML = `
+  const notas = alunos.map(a => a.nota);
+
+  document.getElementById("conteudo").innerHTML = `
     <div class="card">
       <div class="grid">
         <div class="metric">
-          <strong>${dados.total_alunos}</strong>
+          <strong>${d.total_alunos}</strong>
           Alunos avaliados
         </div>
         <div class="metric">
-          <strong>${dados.media_turma}</strong>
+          <strong>${d.media_turma}</strong>
           Média da turma
         </div>
         <div class="metric">
-          <strong>${dados.tempo_medio_min} min</strong>
+          <strong>${d.tempo_medio_min} min</strong>
           Tempo médio
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <h2>Percentual de Acerto por Questão</h2>
+      <canvas id="graficoQuestoes"></canvas>
+    </div>
+
+    <div class="card">
+      <h2>Notas dos Alunos</h2>
+      <canvas id="graficoNotas"></canvas>
     </div>
 
     <div class="card">
@@ -164,13 +189,9 @@
               <td>${a.nota}</td>
               <td>${a.duracao_min}</td>
               <td class="violacao">
-                ${
-                  Object.keys(a.violacoes).length
-                    ? Object.entries(a.violacoes)
-                        .map(v => `${v[0]} (${v[1]})`)
-                        .join("<br>")
-                    : "—"
-                }
+                ${Object.keys(a.violacoes).length
+                  ? Object.entries(a.violacoes).map(v => `${v[0]} (${v[1]})`).join("<br>")
+                  : "—"}
               </td>
             </tr>
           `).join("")}
@@ -178,6 +199,37 @@
       </table>
     </div>
   `;
+
+  new Chart(document.getElementById("graficoQuestoes"), {
+    type: "bar",
+    data: {
+      labels: d.questoes.map((q, i) => `Q${i + 1}`),
+      datasets: [{
+        label: "% de acerto",
+        data: d.questoes.map(q => q.percentual_acerto)
+      }]
+    },
+    options: {
+      scales: { y: { beginAtZero: true, max: 100 } }
+    }
+  });
+
+  new Chart(document.getElementById("graficoNotas"), {
+    type: "bar",
+    data: {
+      labels: alunos.map(a => a.nome),
+      datasets: [{
+        label: "Nota",
+        data: notas
+      }]
+    },
+    options: {
+      scales: { y: { beginAtZero: true, max: 10 } }
+    }
+  });
+}
+
+carregarRelatorio();
 </script>
 
 </body>

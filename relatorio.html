@@ -54,6 +54,16 @@
     .section {
       margin-bottom: 24px;
     }
+
+    .violation {
+      display: inline-block;
+      background-color: #ffcccc;
+      color: #800000;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-right: 4px;
+      font-size: 0.85rem;
+    }
   </style>
 </head>
 <body>
@@ -106,28 +116,60 @@
     } else {
       const data = JSON.parse(relatorio)[0];
 
+      // ------------------------------
       // Preenche resumo da prova
+      // ------------------------------
       const resumoDiv = document.getElementById("resumoProva");
+
+      // Horário de início/fim
+      const inicio = data.inicio ? new Date(data.inicio).toLocaleString() : "-";
+      const fim = data.fim ? new Date(data.fim).toLocaleString() : "-";
+
+      // Tempo de prova (se fornecido, caso contrário calcula como diferença)
+      let tempoProva = data.tempo_prova_min;
+      if (!tempoProva && data.inicio && data.fim) {
+        const dur = (new Date(data.fim) - new Date(data.inicio)) / 60000;
+        tempoProva = dur.toFixed(1);
+      }
+      if (!tempoProva) tempoProva = "-";
+
       resumoDiv.innerHTML = `
         <p><strong>ID da prova:</strong> ${data.prova_id}</p>
+        <p><strong>Data/Horário início:</strong> ${inicio}</p>
+        <p><strong>Data/Horário fim:</strong> ${fim}</p>
+        <p><strong>Tempo de prova (min):</strong> ${tempoProva}</p>
         <p><strong>Total de alunos:</strong> ${data.total_alunos}</p>
         <p><strong>Média da turma:</strong> ${data.media_turma}</p>
-        <p><strong>Tempo médio (min):</strong> ${data.tempo_medio_min}</p>
+        <p><strong>Tempo médio por aluno (min):</strong> ${data.tempo_medio_min}</p>
       `;
 
+      // ------------------------------
       // Preenche tabela de alunos
+      // ------------------------------
       const tbodyAlunos = document.querySelector("#tabelaAlunos tbody");
-      tbodyAlunos.innerHTML = data.alunos.map(a => `
-        <tr>
-          <td>${a.nome}</td>
-          <td>${a.matricula}</td>
-          <td>${a.nota}</td>
-          <td>${a.duracao_min}</td>
-          <td>${a.violacoes}</td>
-        </tr>
-      `).join("");
+      tbodyAlunos.innerHTML = data.alunos.map(a => {
+        let violacoesHTML = "-";
+        try {
+          const obj = JSON.parse(a.violacoes);
+          const keys = Object.keys(obj);
+          if (keys.length) {
+            violacoesHTML = keys.map(k => `<span class="violation">${k}: ${obj[k]}</span>`).join("");
+          }
+        } catch {}
+        return `
+          <tr>
+            <td>${a.nome}</td>
+            <td>${a.matricula}</td>
+            <td>${a.nota}</td>
+            <td>${a.duracao_min}</td>
+            <td>${violacoesHTML}</td>
+          </tr>
+        `;
+      }).join("");
 
+      // ------------------------------
       // Preenche tabela de questões
+      // ------------------------------
       const tbodyQuestoes = document.querySelector("#tabelaQuestoes tbody");
       tbodyQuestoes.innerHTML = data.questoes.map(q => `
         <tr>

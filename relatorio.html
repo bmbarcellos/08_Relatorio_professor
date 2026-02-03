@@ -2,307 +2,235 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Relatório da Prova – Universidade Federal Fluminense</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Relatório Gerencial – Prova Digital</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Boxplot plugin -->
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-boxplot@4.4.0/dist/chartjs-chart-boxplot.min.js"></script>
 
   <style>
     body {
-      margin: 0;
       font-family: Arial, Helvetica, sans-serif;
-      background-color: #f4f6f8;
-      color: #1a1a1a;
-    }
-
-    header {
-      background-color: #003366;
-      color: #fff;
-      padding: 16px 24px;
-      font-size: 20px;
-      font-weight: bold;
-    }
-
-    .container {
-      padding: 24px;
-      max-width: 1200px;
-      margin: auto;
-    }
-
-    .kpis {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 16px;
-      margin-bottom: 32px;
-    }
-
-    .kpi {
-      background: #fff;
-      padding: 16px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-    }
-
-    .kpi h3 {
+      background-color: #f2f4f7;
       margin: 0;
-      font-size: 14px;
-      color: #555;
+      padding: 24px;
+      color: #111;
     }
 
-    .kpi p {
-      margin: 8px 0 0;
-      font-size: 24px;
-      font-weight: bold;
+    h1, h2 {
       color: #003366;
     }
 
-    .grafico {
-      background: #fff;
-      padding: 24px;
+    .card {
+      background: #ffffff;
       border-radius: 8px;
-      margin-bottom: 32px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .metric {
+      text-align: center;
+      padding: 14px;
+      border-radius: 6px;
+      background: #f8f9fb;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 1.8rem;
+      color: #003366;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #fff;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-      border-radius: 8px;
-      overflow: hidden;
+      margin-top: 12px;
     }
 
     th, td {
-      padding: 12px;
-      border-bottom: 1px solid #ddd;
+      border: 1px solid #ccc;
+      padding: 8px;
+      font-size: 13px;
       text-align: center;
-      font-size: 14px;
     }
 
     th {
-      background-color: #003366;
-      color: #fff;
-    }
-
-    tr:nth-child(even) {
-      background-color: #f2f2f2;
-    }
-
-    tr.violou {
-      background-color: #fff1f1;
+      background: #e9eef3;
     }
 
     .violacao {
-      font-size: 12px;
       color: #b00020;
-      line-height: 1.4;
+      font-weight: bold;
+      font-size: 12px;
     }
 
-    footer {
-      margin-top: 48px;
+    .loading {
       text-align: center;
+      font-size: 1.1rem;
+      color: #666;
+    }
+
+    .footer {
+      margin-top: 24px;
       font-size: 12px;
-      color: #777;
+      color: #666;
+      text-align: center;
     }
   </style>
 </head>
 
 <body>
 
-<header>
-  Universidade Federal Fluminense – Relatório da Prova
-</header>
+<h1>Relatório Gerencial da Prova Digital</h1>
+<p>Universidade Federal Fluminense</p>
 
-<div class="container" id="conteudo">
-  <p>Carregando relatório…</p>
+<div id="conteudo" class="loading">
+  Carregando relatório...
 </div>
 
-<footer>
-  Sistema de Provas Digitais – UFF
-</footer>
+<div class="footer">
+  Relatório gerado automaticamente pelo sistema de provas digitais
+</div>
 
 <script>
-/* ===============================
-   UTILIDADES
-================================ */
-
-function parseViolacoes(v) {
-  if (!v) return {};
-  if (typeof v === "object") return v;
-  try {
-    return JSON.parse(v);
-  } catch {
-    return {};
-  }
-}
-
-/* ===============================
-   BUSCA DADOS
-================================ */
-
 async function carregarRelatorio() {
-  const payload = localStorage.getItem("relatorio_payload");
+
+  const payload = JSON.parse(localStorage.getItem("relatorio_payload"));
 
   if (!payload) {
     document.getElementById("conteudo").innerHTML =
-      "<p>Dados do relatório não encontrados.</p>";
+      "<p>Dados de autenticação não encontrados.</p>";
     return;
   }
 
-  let params;
-  try {
-    params = JSON.parse(payload);
-  } catch {
-    document.getElementById("conteudo").innerHTML =
-      "<p>Payload inválido.</p>";
-    return;
-  }
-
-  const url = `https://webhook.artideia.com.br/webhook/relatorio_professor?email=${encodeURIComponent(params.email)}&senha=${encodeURIComponent(params.senha)}&prova_id=${encodeURIComponent(params.prova_id)}`;
+  const url =
+    "https://webhook.artideia.com.br/webhook/relatorio_professor" +
+    `?email=${encodeURIComponent(payload.email)}` +
+    `&senha=${encodeURIComponent(payload.senha)}` +
+    `&prova_id=${encodeURIComponent(payload.prova_id)}`;
 
   try {
     const res = await fetch(url);
-    const text = await res.text();
+    const data = await res.json();
 
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      document.getElementById("conteudo").innerHTML =
-        `<p>${text}</p>`;
-      return;
+    if (!Array.isArray(data) || !data.length) {
+      throw new Error("Resposta inválida");
     }
 
-    if (Array.isArray(data)) {
-      data = data[0];
-    }
-
-    renderizarRelatorio(data);
-    localStorage.removeItem("relatorio_payload");
+    renderizarRelatorio(data[0]);
 
   } catch (e) {
     document.getElementById("conteudo").innerHTML =
-      "<p>Erro ao carregar o relatório.</p>";
+      "<p>Erro ao carregar relatório.</p>";
   }
 }
 
-/* ===============================
-   RENDERIZAÇÃO
-================================ */
-
 function renderizarRelatorio(d) {
 
-  const mediaAcerto =
-    d.questoes.reduce((s, q) => s + q.percentual_acerto, 0) / d.questoes.length;
+  const alunos = d.alunos.map(a => {
+    let violacoes = {};
+    try {
+      violacoes = JSON.parse(a.violacoes || "{}");
+    } catch (_) {}
+    return { ...a, violacoes };
+  });
 
   const html = `
-    <div class="kpis">
-      <div class="kpi">
-        <h3>Total de alunos</h3>
-        <p>${d.total_alunos}</p>
-      </div>
-      <div class="kpi">
-        <h3>Média da turma</h3>
-        <p>${d.media_turma.toFixed(2)}</p>
-      </div>
-      <div class="kpi">
-        <h3>Maior nota</h3>
-        <p>${d.maior_nota}</p>
-      </div>
-      <div class="kpi">
-        <h3>Menor nota</h3>
-        <p>${d.menor_nota}</p>
-      </div>
-      <div class="kpi">
-        <h3>Acerto médio</h3>
-        <p>${mediaAcerto.toFixed(1)}%</p>
+    <div class="card">
+      <div class="grid">
+        <div class="metric">
+          <strong>${d.total_alunos}</strong>
+          Alunos avaliados
+        </div>
+        <div class="metric">
+          <strong>${d.media_turma}</strong>
+          Média da turma
+        </div>
+        <div class="metric">
+          <strong>${d.tempo_medio_min} min</strong>
+          Tempo médio
+        </div>
       </div>
     </div>
 
-    <div class="grafico">
+    <div class="card">
+      <h2>Percentual de Acerto por Questão</h2>
       <canvas id="graficoQuestoes"></canvas>
     </div>
 
-    <div class="grafico">
-      <canvas id="boxplotNotas"></canvas>
+    <div class="card">
+      <h2>Distribuição das Notas (Boxplot)</h2>
+      <canvas id="graficoBoxplot"></canvas>
     </div>
 
-    <h2>Resultados individuais</h2>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Aluno</th>
-          <th>Nota</th>
-          <th>Violações</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${d.alunos
-          .sort((a, b) => b.nota - a.nota)
-          .map(a => {
-            const viol = parseViolacoes(a.violacoes);
-            return `
-              <tr class="${Object.keys(viol).length ? "violou" : ""}">
-                <td>${a.aluno}</td>
-                <td>${a.nota}</td>
-                <td class="violacao">
-                  ${Object.keys(viol).length
-                    ? Object.entries(viol)
-                        .map(([k, v]) => `${k} (${v})`)
-                        .join("<br>")
-                    : "—"}
-                </td>
-              </tr>
-            `;
-          }).join("")}
-      </tbody>
-    </table>
+    <div class="card">
+      <h2>Resultados por Aluno</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Matrícula</th>
+            <th>Nota</th>
+            <th>Tempo</th>
+            <th>Violações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${alunos.map(a => `
+            <tr>
+              <td>${a.nome}</td>
+              <td>${a.matricula}</td>
+              <td>${a.nota}</td>
+              <td>${a.duracao_min}</td>
+              <td class="violacao">
+                ${Object.keys(a.violacoes).length
+                  ? Object.entries(a.violacoes).map(v => `${v[0]} (${v[1]})`).join("<br>")
+                  : "—"}
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
   `;
 
   document.getElementById("conteudo").innerHTML = html;
 
-  /* ===============================
-     GRÁFICOS
-  ================================ */
-
   new Chart(document.getElementById("graficoQuestoes"), {
     type: "bar",
     data: {
-      labels: d.questoes.map((_, i) => `Q${i + 1}`),
+      labels: d.questoes.map(q => q.questao_id.slice(11,19)),
       datasets: [{
-        label: "Percentual de acerto (%)",
-        data: d.questoes.map(q => q.percentual_acerto)
+        label: "% de acerto",
+        data: d.questoes.map(q => q.percentual_acerto),
+        backgroundColor: "#003366"
       }]
     },
-    options: {
-      scales: {
-        y: { beginAtZero: true, max: 100 }
-      }
-    }
+    options: { scales: { y: { beginAtZero: true, max: 100 } } }
   });
 
-  new Chart(document.getElementById("boxplotNotas"), {
+  new Chart(document.getElementById("graficoBoxplot"), {
     type: "boxplot",
     data: {
-      labels: ["Distribuição de notas"],
+      labels: ["Notas"],
       datasets: [{
-        label: "Notas",
-        data: [d.alunos.map(a => a.nota)]
+        data: [alunos.map(a => a.nota)],
+        backgroundColor: "#90caf9",
+        borderColor: "#003366"
       }]
-    },
-    options: {
-      scales: {
-        y: { beginAtZero: true, max: 10 }
-      }
     }
   });
 }
-
-/* ===============================
-   INIT
-================================ */
 
 carregarRelatorio();
 </script>

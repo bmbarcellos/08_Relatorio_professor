@@ -2,86 +2,119 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Relatório – Teste de Conectividade</title>
+  <title>Relatório da Prova</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-
   <style>
     body {
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f2f4f7;
+      font-family: Arial, sans-serif;
+      background-color: #f2f4f7;
+      margin: 0;
       padding: 20px;
     }
-
-    h1 {
+    h2, h3 {
       color: #003366;
+      text-align: center;
     }
-
-    pre {
-      background: #111;
-      color: #0f0;
-      padding: 16px;
+    .container {
+      max-width: 900px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .stats {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+    .stats div {
+      background: #e6edf7;
+      padding: 10px 20px;
       border-radius: 6px;
-      overflow-x: auto;
-      font-size: 13px;
+      text-align: center;
+      min-width: 120px;
     }
-
-    .erro {
-      color: #b00020;
-      font-weight: bold;
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background-color: #003366;
+      color: #fff;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.85rem;
+      color: #666;
     }
   </style>
 </head>
-
 <body>
 
-<h1>Relatório – Teste de Conectividade</h1>
-<p>Universidade Federal Fluminense</p>
+  <div class="container">
+    <h2>Relatório da Prova Digital</h2>
 
-<div id="status">Iniciando teste...</div>
+    <div id="infoProva" class="stats">
+      <div>Prova ID: <span id="prova_id">-</span></div>
+      <div>Total de alunos: <span id="total_alunos">-</span></div>
+      <div>Média da turma: <span id="media_turma">-</span></div>
+      <div>Tempo médio (min): <span id="tempo_medio">-</span></div>
+    </div>
 
-<h3>Resposta do workflow:</h3>
-<pre id="saida">Aguardando...</pre>
+    <h3>Alunos</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Matrícula</th>
+          <th>Nota</th>
+        </tr>
+      </thead>
+      <tbody id="alunosTable">
+        <!-- Linhas serão inseridas pelo JS -->
+      </tbody>
+    </table>
 
-<script>
-(async function () {
+    <div class="footer">
+      Universidade Federal Fluminense
+    </div>
+  </div>
 
-  console.log("JS NOVO CARREGADO");
+  <script>
+    // Pega os dados do localStorage
+    const relatorioRaw = JSON.parse(localStorage.getItem("relatorio_dados") || "[]");
+    const relatorio = relatorioRaw[0];
 
-  const status = document.getElementById("status");
-  const saida = document.getElementById("saida");
+    if (!relatorio) {
+      alert("Nenhum relatório encontrado. Volte à página anterior.");
+    } else {
+      // Exibe informações gerais
+      document.getElementById("prova_id").textContent = relatorio.prova_id;
+      document.getElementById("total_alunos").textContent = relatorio.total_alunos;
+      document.getElementById("media_turma").textContent = relatorio.media_turma.toFixed(2);
+      document.getElementById("tempo_medio").textContent = relatorio.tempo_medio_min;
 
-  const payload = localStorage.getItem("relatorio_payload");
+      // Preenche a tabela de alunos
+      const tbody = document.getElementById("alunosTable");
+      (relatorio.alunos || []).forEach(aluno => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${aluno.nome}</td>
+          <td>${aluno.matricula}</td>
+          <td>${aluno.nota}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+  </script>
 
-  if (!payload) {
-    status.innerHTML = "<span class='erro'>Payload não encontrado no localStorage.</span>";
-    return;
-  }
-
-  let dados;
-  try {
-    dados = JSON.parse(payload);
-  } catch (e) {
-    status.innerHTML = "<span class='erro'>Erro ao ler payload.</span>";
-    return;
-  }
-
-  status.innerHTML = "Payload encontrado. Chamando workflow...";
-
-  const url =
-    "https://webhook.artideia.com.br/webhook/relatorio_professor" +
-    `?email=${encodeURIComponent(dados.email)}` +
-    `&senha=${encodeURIComponent(dados.senha)}` +
-    `&prova_id=${encodeURIComponent(dados.prova_id)}`;
-
-  try {
-    const res = await fetch(url);
-
-    const texto = await res.text();
-
-    status.innerHTML = "Resposta recebida com sucesso ✔";
-
-    saida.textContent = texto;
-
-  } catch (err) {
-    console.error(err);
-    status.innerHTML = "<sp
+</body>
+</html>

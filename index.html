@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Relatório de Prova Digital</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
@@ -129,7 +129,7 @@
   </div>
 
   <script>
-    console.log("JS NOVO CARREGADO");
+    console.log("JS da página 1 carregado");
 
     const form = document.getElementById("formRelatorio");
     const loading = document.getElementById("loading");
@@ -161,19 +161,19 @@
         }
 
         const data = await res.json();
+        console.log("Resposta do webhook:", data);
 
-        // ÚNICA validação necessária
-        if (!Array.isArray(data) || !data[0] || !data[0].prova_id) {
-          throw new Error("Formato inesperado");
+        // adapta se for objeto único
+        const relatorioData = Array.isArray(data) ? data[0] : data;
+
+        if (!relatorioData || !relatorioData.prova_id) {
+          throw new Error("Formato inesperado: " + JSON.stringify(data));
         }
 
-        // salva APENAS o objeto da prova
-        localStorage.setItem(
-          "relatorio_dados",
-          JSON.stringify(data[0])
-        );
+        // salva no localStorage como array
+        localStorage.setItem("relatorio_dados", JSON.stringify([relatorioData]));
 
-        // redireciona
+        // redireciona para página 2
         window.location.href = "relatorio.html";
 
       } catch (err) {

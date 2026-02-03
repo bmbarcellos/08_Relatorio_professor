@@ -5,7 +5,7 @@
   <title>Relatório Gerencial – Prova Digital</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <!-- Chart.js puro (sem plugins) -->
+  <!-- Chart.js puro -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
@@ -120,25 +120,31 @@ async function carregarRelatorio() {
     const res = await fetch(url);
     const data = await res.json();
 
-    if (!Array.isArray(data) || !data.length) {
-      throw new Error("Resposta inválida");
+    if (!Array.isArray(data) || !data.length || !data[0].prova_id) {
+      throw new Error("Resposta inválida do servidor");
     }
 
     renderizarRelatorio(data[0]);
 
   } catch (e) {
-    console.error(e);
+    console.error("Erro no relatório:", e);
     document.getElementById("conteudo").innerHTML =
       "<p>Erro ao carregar relatório.</p>";
   }
 }
 
 function calcularQuartis(valores) {
-  valores.sort((a,b) => a-b);
-  const q1 = valores[Math.floor(valores.length * 0.25)];
-  const q2 = valores[Math.floor(valores.length * 0.50)];
-  const q3 = valores[Math.floor(valores.length * 0.75)];
-  return { q1, q2, q3 };
+  if (!valores.length) return { q1: 0, q2: 0, q3: 0 };
+
+  valores.sort((a, b) => a - b);
+
+  const pos = p => Math.floor((valores.length - 1) * p);
+
+  return {
+    q1: valores[pos(0.25)],
+    q2: valores[pos(0.50)],
+    q3: valores[pos(0.75)]
+  };
 }
 
 function renderizarRelatorio(d) {
@@ -217,27 +223,31 @@ function renderizarRelatorio(d) {
   new Chart(document.getElementById("graficoQuestoes"), {
     type: "bar",
     data: {
-      labels: d.questoes.map(q => q.questao_id.slice(11,19)),
+      labels: d.questoes.map(q => q.questao_id.slice(11, 19)),
       datasets: [{
         label: "% de acerto",
-        data: d.questoes.map(q => q.percentual_acerto)
+        data: d.questoes.map(q => q.percentual_acerto),
+        backgroundColor: "#003366"
       }]
     },
-    options: { scales: { y: { beginAtZero: true, max: 100 } } }
+    options: {
+      scales: { y: { beginAtZero: true, max: 100 } }
+    }
   });
 
   new Chart(document.getElementById("graficoQuartis"), {
     type: "bar",
     data: {
-      labels: ["Quartis"],
+      labels: ["Notas"],
       datasets: [
-        { label: "Q1", data: [q1] },
-        { label: "Mediana", data: [q2] },
-        { label: "Q3", data: [q3] }
+        { label: "Q1", data: [q1], backgroundColor: "#90caf9" },
+        { label: "Mediana", data: [q2], backgroundColor: "#42a5f5" },
+        { label: "Q3", data: [q3], backgroundColor: "#1e88e5" }
       ]
     },
     options: {
-      plugins: { legend: { position: "bottom" } }
+      plugins: { legend: { position: "bottom" } },
+      scales: { y: { beginAtZero: true } }
     }
   });
 }

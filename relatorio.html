@@ -2,119 +2,101 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Relatório da Prova</title>
+  <title>Relatório de Prova - Teste</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: Arial, Helvetica, sans-serif;
       background-color: #f2f4f7;
       margin: 0;
       padding: 20px;
     }
-    h2, h3 {
+
+    .container {
+      background-color: #fff;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border-top: 6px solid #003366;
+    }
+
+    h2 {
       color: #003366;
       text-align: center;
     }
-    .container {
-      max-width: 900px;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+
+    .section {
+      margin-bottom: 16px;
     }
-    .stats {
-      display: flex;
-      justify-content: space-around;
-      margin-bottom: 20px;
+
+    .section h3 {
+      margin-bottom: 8px;
+      font-size: 1rem;
+      color: #003366;
     }
-    .stats div {
-      background: #e6edf7;
-      padding: 10px 20px;
-      border-radius: 6px;
-      text-align: center;
-      min-width: 120px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px;
-      text-align: center;
-    }
-    th {
-      background-color: #003366;
-      color: #fff;
-    }
-    .footer {
-      text-align: center;
-      margin-top: 20px;
-      font-size: 0.85rem;
-      color: #666;
+
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
     }
   </style>
 </head>
 <body>
-
   <div class="container">
-    <h2>Relatório da Prova Digital</h2>
+    <h2>Relatório de Prova - Teste</h2>
 
-    <div id="infoProva" class="stats">
-      <div>Prova ID: <span id="prova_id">-</span></div>
-      <div>Total de alunos: <span id="total_alunos">-</span></div>
-      <div>Média da turma: <span id="media_turma">-</span></div>
-      <div>Tempo médio (min): <span id="tempo_medio">-</span></div>
+    <div class="section">
+      <h3>Dados da Prova:</h3>
+      <div id="provaInfo"></div>
     </div>
 
-    <h3>Alunos</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Matrícula</th>
-          <th>Nota</th>
-        </tr>
-      </thead>
-      <tbody id="alunosTable">
-        <!-- Linhas serão inseridas pelo JS -->
-      </tbody>
-    </table>
+    <div class="section">
+      <h3>Alunos:</h3>
+      <div id="alunosInfo"></div>
+    </div>
 
-    <div class="footer">
-      Universidade Federal Fluminense
+    <div class="section">
+      <h3>Questões:</h3>
+      <div id="questoesInfo"></div>
     </div>
   </div>
 
   <script>
-    // Pega os dados do localStorage
-    const relatorioRaw = JSON.parse(localStorage.getItem("relatorio_dados") || "[]");
-    const relatorio = relatorioRaw[0];
+    console.log("JS da página 2 carregado");
+
+    // recupera dados do localStorage
+    const relatorio = localStorage.getItem("relatorio_dados");
 
     if (!relatorio) {
-      alert("Nenhum relatório encontrado. Volte à página anterior.");
+      document.getElementById("provaInfo").textContent = "Nenhum dado encontrado. Volte para a página 1.";
     } else {
-      // Exibe informações gerais
-      document.getElementById("prova_id").textContent = relatorio.prova_id;
-      document.getElementById("total_alunos").textContent = relatorio.total_alunos;
-      document.getElementById("media_turma").textContent = relatorio.media_turma.toFixed(2);
-      document.getElementById("tempo_medio").textContent = relatorio.tempo_medio_min;
+      const data = JSON.parse(relatorio)[0]; // pega o primeiro item
 
-      // Preenche a tabela de alunos
-      const tbody = document.getElementById("alunosTable");
-      (relatorio.alunos || []).forEach(aluno => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${aluno.nome}</td>
-          <td>${aluno.matricula}</td>
-          <td>${aluno.nota}</td>
-        `;
-        tbody.appendChild(tr);
-      });
+      // prova
+      const provaDiv = document.getElementById("provaInfo");
+      provaDiv.innerHTML = `
+        <p><strong>ID da prova:</strong> ${data.prova_id}</p>
+        <p><strong>Total de alunos:</strong> ${data.total_alunos}</p>
+        <p><strong>Média da turma:</strong> ${data.media_turma}</p>
+        <p><strong>Tempo médio (min):</strong> ${data.tempo_medio_min}</p>
+      `;
+
+      // alunos
+      const alunosDiv = document.getElementById("alunosInfo");
+      alunosDiv.innerHTML = data.alunos.map(a => `
+        <p>${a.nome} (Matrícula: ${a.matricula}) - Nota: ${a.nota}, Duração: ${a.duracao_min} min, Violações: ${a.violacoes}</p>
+      `).join("");
+
+      // questões
+      const questoesDiv = document.getElementById("questoesInfo");
+      questoesDiv.innerHTML = data.questoes.map(q => `
+        <p>ID: ${q.questao_id}, Tipo: ${q.tipo}, Percentual acerto: ${q.percentual_acerto}%</p>
+      `).join("");
     }
   </script>
-
 </body>
 </html>

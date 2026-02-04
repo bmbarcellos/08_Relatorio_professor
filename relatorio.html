@@ -158,6 +158,19 @@
     } else {
       const data = JSON.parse(relatorio)[0];
 
+      // Cálculos das estatísticas derivadas
+      const notas = data.alunos.map(a => a.nota);
+      const media = data.media_turma;
+
+      const minNota = Math.min(...notas).toFixed(1);
+      const maxNota = Math.max(...notas).toFixed(1);
+
+      const somaQuadrados = notas.reduce((sum, n) => sum + Math.pow(n - media, 2), 0);
+      const desvioPadrao = Math.sqrt(somaQuadrados / notas.length).toFixed(2);
+
+      const acimaMedia = notas.filter(n => n > media).length;
+      const abaixoMedia = notas.filter(n => n < media).length;
+
       // Preenche resumo
       const resumoDiv = document.getElementById("resumoProva");
       let tempoProva = data.tempo_prova_min || "-";
@@ -167,7 +180,12 @@
         <p><strong>Duração da prova (min):</strong> <span class="stat-value">${tempoProva}</span></p>
         <p><strong>Total de alunos:</strong> <span class="stat-value">${data.total_alunos}</span></p>
         <p><strong>Quantidade de questões:</strong> <span class="stat-value">${data.questoes.length}</span></p>
-        <p><strong>Média da turma:</strong> <span class="stat-value">${data.media_turma}</span></p>
+        <p><strong>Média da turma:</strong> <span class="stat-value">${media}</span></p>
+        <p><strong>Desvio padrão:</strong> <span class="stat-value">${desvioPadrao}</span></p>
+        <p><strong>Nota mínima:</strong> <span class="stat-value">${minNota}</span></p>
+        <p><strong>Nota máxima:</strong> <span class="stat-value">${maxNota}</span></p>
+        <p><strong>Alunos acima da média:</strong> <span class="stat-value">${acimaMedia}</span></p>
+        <p><strong>Alunos abaixo da média:</strong> <span class="stat-value">${abaixoMedia}</span></p>
       `;
 
       // Tabela de alunos (ordenada por nome)
@@ -221,8 +239,6 @@
 
       // Boxplot de notas
       const ctx2 = document.getElementById("graficoNotas").getContext("2d");
-      const notas = alunosOrdenados.map(a => a.nota);
-
       new Chart(ctx2, {
         type: 'boxplot',
         data: {

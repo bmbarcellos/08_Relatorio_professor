@@ -119,30 +119,9 @@
       display:inline-block;
       padding-bottom:4px;
     }
-
-    /* 🔹 BOTÃO ENCERRAR SESSÃO */
-    .logout {
-      text-align:center;
-      margin:40px 0;
-    }
-
-    .logout button {
-      background:#003366;
-      color:#fff;
-      border:none;
-      padding:12px 28px;
-      font-size:1rem;
-      border-radius:8px;
-      cursor:pointer;
-      box-shadow:0 4px 10px rgba(0,0,0,0.15);
-    }
-
-    .logout button:hover {
-      background:#002244;
-    }
   </style>
 
-  <!-- Chart.js v3 + Boxplot -->
+  <!-- Chart.js v3 (compatível com o plugin) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot/build/Chart.BoxPlot.js"></script>
 </head>
@@ -203,20 +182,10 @@
     </table>
   </div>
 
-  <!-- 🔹 BOTÃO ENCERRAR -->
-  <div class="logout">
-    <button onclick="encerrarSessao()">Encerrar sessão</button>
-  </div>
-
 </div>
 
 <script>
   const relatorio = localStorage.getItem("relatorio_dados");
-
-  function encerrarSessao() {
-    localStorage.clear();
-    window.location.href = "index.html"; // página 1
-  }
 
   if (!relatorio) {
     document.getElementById("resumoProva").textContent =
@@ -293,13 +262,13 @@
       }
     });
 
-    // ✅ BOXPLOT COM OUTLIERS DESTACADOS
     new Chart(graficoNotas, {
       type:'boxplot',
       data:{
         labels:['Notas'],
         datasets:[{
-          data:[notas],
+          data: notas,
+          parsing: false,
           backgroundColor:'#003366',
           borderColor:'#003366',
           outlierColor:'#d00000',
@@ -308,7 +277,7 @@
       },
       options:{
         plugins:{legend:{display:false}},
-        scales:{y:{beginAtZero:true,max:10}}
+        scales:{ y:{beginAtZero:true,max:10} }
       }
     });
   }

@@ -294,27 +294,25 @@
     });
 
     // ✅ BOXPLOT COM OUTLIERS DESTACADOS
-   new Chart(graficoNotas, {
-  type: 'boxplot',
-  data: {
-    labels: ['Notas'],
-    datasets: [{
-      data: notas,
-      parsing: false,
-      backgroundColor: '#003366',
-      borderColor: '#003366',
-      outlierColor: '#d00000',
-      outlierRadius: 6
-    }]
-  },
-  options: {
-    plugins: { legend: { display: false } },
-    scales: {
-      y: {
-        beginAtZero: true,
-        max: 10
+    new Chart(graficoNotas, {
+      type:'boxplot',
+      data:{
+        labels:['Notas'],
+        datasets:[{
+          data:[notas],
+          backgroundColor:'#003366',
+          borderColor:'#003366',
+          outlierColor:'#d00000',
+          outlierRadius:6
+        }]
+      },
+      options:{
+        plugins:{legend:{display:false}},
+        scales:{y:{beginAtZero:true,max:10}}
       }
-    }
+    });
   }
-});
+</script>
 
+</body>
+</html>

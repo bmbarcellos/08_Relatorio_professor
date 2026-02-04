@@ -121,9 +121,17 @@
     }
   </style>
 
-  <!-- ✅ AJUSTE DO BOXPLOT: FIXAR CHART.JS V3 -->
+  <!-- CHARTS -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot/build/Chart.BoxPlot.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@3.1.0/build/Chart.BoxPlot.js"></script>
+
+  <!-- REGISTRO DO BOXPLOT (OBRIGATÓRIO) -->
+  <script>
+    Chart.register(
+      ChartBoxPlot.BoxPlotController,
+      ChartBoxPlot.BoxAndWiskers
+    );
+  </script>
 </head>
 
 <body>
@@ -188,12 +196,11 @@
   const relatorio = localStorage.getItem("relatorio_dados");
 
   if (!relatorio) {
-    document.getElementById("resumoProva").textContent =
-      "Nenhum dado encontrado. Volte para a página 1.";
+    document.getElementById("resumoProva").textContent = "Nenhum dado encontrado. Volte para a página 1.";
   } else {
     const data = JSON.parse(relatorio)[0];
 
-    const notas = data.alunos.map(a => a.nota);
+    const notas = data.alunos.map(a => Number(a.nota));
     const media = (notas.reduce((a,b)=>a+b,0)/notas.length).toFixed(2);
     const minNota = Math.min(...notas);
     const maxNota = Math.max(...notas);
@@ -217,26 +224,25 @@
       <p><strong>Alunos abaixo da média</strong><span class="stat-value">${abaixoMedia}</span></p>
     `;
 
-    const tbodyAlunos = document.querySelector("#tabelaAlunos tbody");
     const alunosOrdenados = data.alunos.slice().sort((a,b)=>a.nome.localeCompare(b.nome));
-    tbodyAlunos.innerHTML = alunosOrdenados.map(a => {
-      let violacoesHTML = "-";
-      try {
-        const obj = JSON.parse(a.violacoes);
-        const keys = Object.keys(obj);
-        if (keys.length)
-          violacoesHTML = keys.map(k => `<span class="violation">${k}: ${obj[k]}</span>`).join("");
-      } catch {}
-      return `
-        <tr>
-          <td>${a.nome}</td>
-          <td>${a.matricula}</td>
-          <td>${a.nota}</td>
-          <td>${a.duracao_min}</td>
-          <td>${violacoesHTML}</td>
-        </tr>
-      `;
-    }).join("");
+    document.querySelector("#tabelaAlunos tbody").innerHTML =
+      alunosOrdenados.map(a => {
+        let violacoesHTML = "-";
+        try {
+          const obj = JSON.parse(a.violacoes);
+          const keys = Object.keys(obj);
+          if (keys.length) violacoesHTML = keys.map(k => `<span class="violation">${k}: ${obj[k]}</span>`).join("");
+        } catch {}
+        return `
+          <tr>
+            <td>${a.nome}</td>
+            <td>${a.matricula}</td>
+            <td>${a.nota}</td>
+            <td>${a.duracao_min}</td>
+            <td>${violacoesHTML}</td>
+          </tr>
+        `;
+      }).join("");
 
     document.querySelector("#tabelaQuestoes tbody").innerHTML =
       data.questoes.map(q => `
@@ -251,30 +257,18 @@
       type:"bar",
       data:{
         labels:data.questoes.map(q=>q.questao_id),
-        datasets:[{
-          data:data.questoes.map(q=>q.percentual_acerto),
-          backgroundColor:"#003366"
-        }]
+        datasets:[{data:data.questoes.map(q=>q.percentual_acerto), backgroundColor:"#003366"}]
       },
-      options:{
-        scales:{ y:{beginAtZero:true,max:100} },
-        plugins:{legend:{display:false}}
-      }
+      options:{ scales:{ y:{beginAtZero:true,max:100} }, plugins:{legend:{display:false}} }
     });
 
     new Chart(graficoNotas, {
       type:'boxplot',
       data:{
         labels:['Notas'],
-        datasets:[{
-          data:[notas],
-          backgroundColor:'#003366'
-        }]
+        datasets:[{ data: notas, backgroundColor:'#003366' }]
       },
-      options:{
-        plugins:{legend:{display:false}},
-        scales:{y:{beginAtZero:true,max:10}}
-      }
+      options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,max:10}} }
     });
   }
 </script>

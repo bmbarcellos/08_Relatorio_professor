@@ -64,10 +64,6 @@
       align-items:center;
     }
 
-    #resumoProva strong {
-      white-space:nowrap;
-    }
-
     .stat-value {
       text-align:right;
       font-weight:600;
@@ -78,7 +74,6 @@
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap:30px;
-      align-items:stretch;
     }
 
     canvas { max-width:100%; }
@@ -94,8 +89,8 @@
       margin-bottom:30px;
     }
 
-    th, td { padding:12px 16px; text-align:left; }
-    th { background-color:#003366; color:#fff; font-weight:600; }
+    th, td { padding:12px 16px; }
+    th { background-color:#003366; color:#fff; }
     tr:nth-child(even) td { background-color:#f4f6fa; }
     tr:hover td { background-color:#d9e8ff; }
 
@@ -107,7 +102,6 @@
       padding:3px 7px;
       border-radius:6px;
       margin-right:4px;
-      margin-bottom:2px;
       font-size:0.85rem;
     }
 
@@ -119,13 +113,33 @@
       display:inline-block;
       padding-bottom:4px;
     }
+
+    /* ===== BOTÃO ENCERRAR ===== */
+    .logout {
+      text-align:center;
+      margin:40px 0;
+    }
+
+    .logout button {
+      background-color:#003366;
+      color:#fff;
+      border:none;
+      padding:12px 28px;
+      font-size:1rem;
+      border-radius:8px;
+      cursor:pointer;
+      transition:background 0.2s;
+    }
+
+    .logout button:hover {
+      background-color:#002244;
+    }
   </style>
 
   <!-- CHARTS -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@3.1.0/build/Chart.BoxPlot.js"></script>
 
-  <!-- REGISTRO DO BOXPLOT (OBRIGATÓRIO) -->
   <script>
     Chart.register(
       ChartBoxPlot.BoxPlotController,
@@ -190,85 +204,68 @@
     </table>
   </div>
 
+  <!-- BOTÃO ENCERRAR -->
+  <div class="logout">
+    <button onclick="encerrarSessao()">Encerrar sessão</button>
+  </div>
+
 </div>
 
 <script>
+  function encerrarSessao() {
+    localStorage.clear();
+    window.location.href = "index.html"; // página 1
+  }
+
   const relatorio = localStorage.getItem("relatorio_dados");
 
   if (!relatorio) {
-    document.getElementById("resumoProva").textContent = "Nenhum dado encontrado. Volte para a página 1.";
+    document.getElementById("resumoProva").textContent = "Nenhum dado encontrado.";
   } else {
     const data = JSON.parse(relatorio)[0];
 
     const notas = data.alunos.map(a => Number(a.nota));
+
     const media = (notas.reduce((a,b)=>a+b,0)/notas.length).toFixed(2);
     const minNota = Math.min(...notas);
     const maxNota = Math.max(...notas);
-    const desvioPadrao = Math.sqrt(
-      notas.map(n=>Math.pow(n-media,2)).reduce((a,b)=>a+b,0)/notas.length
-    ).toFixed(2);
-
-    const acimaMedia = data.alunos.filter(a=>a.nota>media).map(a=>a.nome).join(", ") || "-";
-    const abaixoMedia = data.alunos.filter(a=>a.nota<media).map(a=>a.nome).join(", ") || "-";
 
     document.getElementById("resumoProva").innerHTML = `
       <p><strong>ID da prova</strong><span class="stat-value">${data.prova_id}</span></p>
-      <p><strong>Duração da prova (min)</strong><span class="stat-value">${data.tempo_prova_min || "-"}</span></p>
       <p><strong>Total de alunos</strong><span class="stat-value">${data.total_alunos}</span></p>
-      <p><strong>Quantidade de questões</strong><span class="stat-value">${data.questoes.length}</span></p>
       <p><strong>Média da turma</strong><span class="stat-value">${media}</span></p>
-      <p><strong>Desvio padrão</strong><span class="stat-value">${desvioPadrao}</span></p>
       <p><strong>Nota mínima</strong><span class="stat-value">${minNota}</span></p>
       <p><strong>Nota máxima</strong><span class="stat-value">${maxNota}</span></p>
-      <p><strong>Alunos acima da média</strong><span class="stat-value">${acimaMedia}</span></p>
-      <p><strong>Alunos abaixo da média</strong><span class="stat-value">${abaixoMedia}</span></p>
     `;
 
-    const alunosOrdenados = data.alunos.slice().sort((a,b)=>a.nome.localeCompare(b.nome));
     document.querySelector("#tabelaAlunos tbody").innerHTML =
-      alunosOrdenados.map(a => {
-        let violacoesHTML = "-";
-        try {
-          const obj = JSON.parse(a.violacoes);
-          const keys = Object.keys(obj);
-          if (keys.length) violacoesHTML = keys.map(k => `<span class="violation">${k}: ${obj[k]}</span>`).join("");
-        } catch {}
-        return `
-          <tr>
-            <td>${a.nome}</td>
-            <td>${a.matricula}</td>
-            <td>${a.nota}</td>
-            <td>${a.duracao_min}</td>
-            <td>${violacoesHTML}</td>
-          </tr>
-        `;
-      }).join("");
-
-    document.querySelector("#tabelaQuestoes tbody").innerHTML =
-      data.questoes.map(q => `
+      data.alunos.sort((a,b)=>a.nome.localeCompare(b.nome)).map(a => `
         <tr>
-          <td>${q.questao_id}</td>
-          <td>${q.tipo}</td>
-          <td>${q.percentual_acerto}%</td>
+          <td>${a.nome}</td>
+          <td>${a.matricula}</td>
+          <td>${a.nota}</td>
+          <td>${a.duracao_min}</td>
+          <td>${a.violacoes}</td>
         </tr>
       `).join("");
-
-    new Chart(graficoQuestoes, {
-      type:"bar",
-      data:{
-        labels:data.questoes.map(q=>q.questao_id),
-        datasets:[{data:data.questoes.map(q=>q.percentual_acerto), backgroundColor:"#003366"}]
-      },
-      options:{ scales:{ y:{beginAtZero:true,max:100} }, plugins:{legend:{display:false}} }
-    });
 
     new Chart(graficoNotas, {
       type:'boxplot',
       data:{
         labels:['Notas'],
-        datasets:[{ data: notas, backgroundColor:'#003366' }]
+        datasets:[{
+          data: notas,
+          backgroundColor:'#cce0ff',
+          borderColor:'#003366',
+          outlierColor:'#d00000',
+          outlierRadius:6,
+          outlierBorderColor:'#7a0000'
+        }]
       },
-      options:{ plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,max:10}} }
+      options:{
+        plugins:{legend:{display:false}},
+        scales:{y:{beginAtZero:true,max:10}}
+      }
     });
   }
 </script>

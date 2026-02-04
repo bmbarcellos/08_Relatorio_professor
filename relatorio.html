@@ -55,6 +55,7 @@
 
     .stat-value { font-weight:600; color:#003366; margin-left:6px; }
 
+    /* Estilo da tabela */
     table {
       width:100%;
       border-collapse: separate;
@@ -92,6 +93,26 @@
     }
 
     canvas { max-width:100%; }
+
+    /* Resumo da prova em colunas */
+    #resumoProva {
+      display: grid;
+      grid-template-columns: 1fr 1fr; /* duas colunas: rótulo e valor */
+      gap: 10px 20px;
+      align-items: center;
+    }
+
+    #resumoProva p {
+      display: contents; /* permite que spans fiquem alinhados na grid */
+    }
+
+    #resumoProva strong {
+      justify-self: start; /* rótulo alinhado à esquerda */
+    }
+
+    #resumoProva .stat-value {
+      justify-self: end; /* valor alinhado à direita */
+    }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -158,18 +179,14 @@
     } else {
       const data = JSON.parse(relatorio)[0];
 
-      // Cálculos das estatísticas derivadas
+      // Calcula estatísticas derivadas
       const notas = data.alunos.map(a => a.nota);
-      const media = data.media_turma;
-
-      const minNota = Math.min(...notas).toFixed(1);
-      const maxNota = Math.max(...notas).toFixed(1);
-
-      const somaQuadrados = notas.reduce((sum, n) => sum + Math.pow(n - media, 2), 0);
-      const desvioPadrao = Math.sqrt(somaQuadrados / notas.length).toFixed(2);
-
-      const acimaMedia = notas.filter(n => n > media).length;
-      const abaixoMedia = notas.filter(n => n < media).length;
+      const media = (notas.reduce((a,b)=>a+b,0)/notas.length).toFixed(2);
+      const minNota = Math.min(...notas);
+      const maxNota = Math.max(...notas);
+      const desvioPadrao = Math.sqrt(notas.map(n=>Math.pow(n-media,2)).reduce((a,b)=>a+b,0)/notas.length).toFixed(2);
+      const acimaMedia = data.alunos.filter(a=>a.nota>media).map(a=>a.nome).join(", ") || "-";
+      const abaixoMedia = data.alunos.filter(a=>a.nota<media).map(a=>a.nome).join(", ") || "-";
 
       // Preenche resumo
       const resumoDiv = document.getElementById("resumoProva");

@@ -142,9 +142,9 @@
     }
   </style>
 
-  <!-- Chart.js v2 + Boxplot (compatível com seu código atual) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@2.0.1/build/Chart.BoxPlot.js"></script>
+  <!-- Chart.js v3 + Boxplot correto -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@3.1.1/build/Chart.BoxPlot.js"></script>
 </head>
 
 <body>
@@ -293,19 +293,21 @@
         }]
       },
       options:{
-        scales:{ yAxes:[{ ticks:{ beginAtZero:true, max:100 } }] },
-        legend:{ display:false }
+        scales:{ y:{ beginAtZero:true, max:100 } },
+        plugins:{ legend:{ display:false } }
       }
     });
 
-    // ✅ BOXPLOT COM OUTLIERS - compatível Chart.js v2
+    // ✅ BOXPLOT - Chart.js v3 registrado corretamente
+    Chart.register(Chart.BoxPlotController, Chart.BoxAndWhiskersElement, Chart.CategoryScale, Chart.LinearScale, Chart.Title, Chart.Tooltip, Chart.Legend);
+
     new Chart(graficoNotas, {
       type:'boxplot',
       data:{
         labels:['Notas'],
         datasets:[{
-          label: 'Notas',
-          data: notas, 
+          label:'Notas',
+          data: notas,
           backgroundColor:'#003366',
           borderColor:'#003366',
           outlierColor:'#d00000',
@@ -313,8 +315,8 @@
         }]
       },
       options:{
-        legend:{ display:false },
-        scales:{ yAxes:[{ ticks:{ beginAtZero:true, max:10 } }] }
+        plugins:{ legend:{ display:false } },
+        scales:{ y:{ beginAtZero:true, max:10 } }
       }
     });
 

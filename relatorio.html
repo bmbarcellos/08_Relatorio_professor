@@ -280,6 +280,9 @@
         </tr>
       `).join("");
 
+    const graficoQuestoes = document.getElementById("graficoQuestoes");
+    const graficoNotas = document.getElementById("graficoNotas"); // 🔹 corrigido
+
     new Chart(graficoQuestoes, {
       type:"bar",
       data:{

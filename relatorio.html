@@ -120,6 +120,7 @@
       padding-bottom:4px;
     }
 
+    /* 🔹 BOTÃO ENCERRAR SESSÃO */
     .logout {
       text-align:center;
       margin:40px 0;
@@ -141,7 +142,7 @@
     }
   </style>
 
-  <!-- Chart.js v3 + Boxplot -->
+  <!-- Chart.js v3 + Boxplot correto -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@3.1.1/build/Chart.BoxPlot.js"></script>
 </head>
@@ -203,6 +204,7 @@
     </table>
   </div>
 
+  <!-- 🔹 BOTÃO ENCERRAR -->
   <div class="logout">
     <button onclick="encerrarSessao()">Encerrar sessão</button>
   </div>
@@ -214,7 +216,7 @@
 
   function encerrarSessao() {
     localStorage.clear();
-    window.location.href = "index.html";
+    window.location.href = "index.html"; // página 1
   }
 
   if (!relatorio) {
@@ -231,6 +233,9 @@
       notas.map(n=>Math.pow(n-media,2)).reduce((a,b)=>a+b,0)/notas.length
     ).toFixed(2);
 
+    const acimaMedia = data.alunos.filter(a=>a.nota>media).map(a=>a.nome).join(", ") || "-";
+    const abaixoMedia = data.alunos.filter(a=>a.nota<media).map(a=>a.nome).join(", ") || "-";
+
     document.getElementById("resumoProva").innerHTML = `
       <p><strong>ID da prova</strong><span class="stat-value">${data.prova_id}</span></p>
       <p><strong>Tempo médio da turma (min)</strong><span class="stat-value">${data.tempo_medio_min || "-"}</span></p>
@@ -240,18 +245,30 @@
       <p><strong>Desvio padrão</strong><span class="stat-value">${desvioPadrao}</span></p>
       <p><strong>Nota mínima</strong><span class="stat-value">${minNota}</span></p>
       <p><strong>Nota máxima</strong><span class="stat-value">${maxNota}</span></p>
+      <p><strong>Alunos acima da média</strong><span class="stat-value">${acimaMedia}</span></p>
+      <p><strong>Alunos abaixo da média</strong><span class="stat-value">${abaixoMedia}</span></p>
     `;
 
     const tbodyAlunos = document.querySelector("#tabelaAlunos tbody");
-    tbodyAlunos.innerHTML = data.alunos.map(a => `
-      <tr>
-        <td>${a.nome}</td>
-        <td>${a.matricula}</td>
-        <td>${Number(a.nota).toFixed(1)}</td>
-        <td>${a.duracao_min}</td>
-        <td>-</td>
-      </tr>
-    `).join("");
+    const alunosOrdenados = data.alunos.slice().sort((a,b)=>a.nome.localeCompare(b.nome));
+    tbodyAlunos.innerHTML = alunosOrdenados.map(a => {
+      let violacoesHTML = "-";
+      try {
+        const obj = JSON.parse(a.violacoes);
+        const keys = Object.keys(obj);
+        if (keys.length)
+          violacoesHTML = keys.map(k => `<span class="violation">${k}: ${obj[k]}</span>`).join("");
+      } catch {}
+      return `
+        <tr>
+          <td>${a.nome}</td>
+          <td>${a.matricula}</td>
+          <td>${a.nota}</td>
+          <td>${a.duracao_min}</td>
+          <td>${violacoesHTML}</td>
+        </tr>
+      `;
+    }).join("");
 
     document.querySelector("#tabelaQuestoes tbody").innerHTML =
       data.questoes.map(q => `
@@ -265,18 +282,6 @@
 
     const graficoQuestoes = document.getElementById("graficoQuestoes");
     const graficoNotas = document.getElementById("graficoNotas");
-
-    Chart.register(
-      Chart.BarController,
-      Chart.BoxPlotController,
-      Chart.CategoryScale,
-      Chart.LinearScale,
-      Chart.BarElement,
-      Chart.BoxAndWhiskersElement,
-      Chart.Title,
-      Chart.Tooltip,
-      Chart.Legend
-    );
 
     new Chart(graficoQuestoes, {
       type:"bar",
@@ -293,12 +298,20 @@
       }
     });
 
+    // ✅ BOXPLOT - Chart.js v3 registrado corretamente
+    Chart.register(Chart.BoxPlotController, Chart.BoxAndWhiskersElement, Chart.CategoryScale, Chart.LinearScale, Chart.Title, Chart.Tooltip, Chart.Legend);
+
     new Chart(graficoNotas, {
       type:'boxplot',
       data:{
         labels:['Notas'],
         datasets:[{
-          data: notas
+          label:'Notas',
+          data: notas,
+          backgroundColor:'#003366',
+          borderColor:'#003366',
+          outlierColor:'#d00000',
+          outlierRadius:6
         }]
       },
       options:{
@@ -306,6 +319,7 @@
         scales:{ y:{ beginAtZero:true, max:10 } }
       }
     });
+
   }
 </script>
 

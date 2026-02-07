@@ -42,7 +42,7 @@
       margin-bottom:30px;
     }
 
-    .card h3, .chart-container h3 {
+    h3 {
       color:#003366;
       margin-bottom:15px;
       font-size:1.2rem;
@@ -58,12 +58,6 @@
       margin-top:15px;
     }
 
-    #resumoProva p {
-      display:grid;
-      grid-template-columns: auto 1fr;
-      align-items:center;
-    }
-
     .stat-value {
       text-align:right;
       font-weight:600;
@@ -76,48 +70,38 @@
       gap:30px;
     }
 
-    canvas { max-width:100%; }
-
     table {
       width:100%;
-      border-collapse: separate;
+      border-collapse:separate;
       border-spacing:0;
       border-radius:12px;
       overflow:hidden;
-      background-color:#fff;
+      background:#fff;
       box-shadow:0 6px 18px rgba(0,0,0,0.08);
       margin-bottom:30px;
     }
 
-    th, td { padding:12px 16px; text-align:left; }
-    th { background-color:#003366; color:#fff; font-weight:600; }
-    tr:nth-child(even) td { background-color:#f4f6fa; }
-    tr:hover td { background-color:#d9e8ff; }
+    th, td { padding:12px 16px; }
+    th { background:#003366; color:#fff; }
+    tr:nth-child(even) td { background:#f4f6fa; }
 
     .violation {
-      display:inline-block;
-      background-color:#ffdddd;
+      background:#ffdddd;
       color:#800000;
-      font-weight:500;
-      padding:3px 7px;
+      padding:3px 6px;
       border-radius:6px;
-      margin-right:4px;
-      font-size:0.85rem;
+      font-size:.85rem;
+      display:inline-block;
+      margin:2px;
     }
 
-    /* 🔍 ÍNDICE DE SUSPEIÇÃO */
     .suspeicao {
       font-weight:700;
-      padding:6px 10px;
-      border-radius:8px;
-      color:#fff;
-      display:inline-block;
-      min-width:70px;
-      text-align:center;
     }
-    .baixo { background:#2e7d32; }
-    .medio { background:#f9a825; }
-    .alto  { background:#c62828; }
+
+    .alto { color:#b00020; }
+    .medio { color:#e67e00; }
+    .baixo { color:#2e7d32; }
 
     .logout {
       text-align:center;
@@ -129,7 +113,6 @@
       color:#fff;
       border:none;
       padding:12px 28px;
-      font-size:1rem;
       border-radius:8px;
       cursor:pointer;
     }
@@ -160,87 +143,141 @@
     </div>
 
     <div class="chart-container">
-      <h3>Distribuição de Notas (Boxplot)</h3>
+      <h3>Distribuição de Notas</h3>
       <canvas id="graficoNotas"></canvas>
     </div>
   </div>
 
-  <div class="section">
-    <h3>Alunos</h3>
-    <table id="tabelaAlunos">
-      <thead>
-        <tr>
-          <th>Nome</th>
-          <th>Matrícula</th>
-          <th>Nota</th>
-          <th>Duração (min)</th>
-          <th>Violações</th>
-          <th>Índice de Suspeição</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <h3>Alunos</h3>
+  <table id="tabelaAlunos">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Matrícula</th>
+        <th>Nota</th>
+        <th>Duração (min)</th>
+        <th>Violações</th>
+        <th>Índice de Suspeição</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-  <div class="section">
-    <h3>Estatísticas das Questões</h3>
-    <table id="tabelaQuestoes">
-      <thead>
-        <tr>
-          <th>ID da Questão</th>
-          <th>Tipo</th>
-          <th>% de Acerto</th>
-          <th>Grau de Dificuldade</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+  <h3>Estatísticas das Questões</h3>
+  <table id="tabelaQuestoes">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Tipo</th>
+        <th>% Acerto</th>
+        <th>Dificuldade</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
   <div class="logout">
     <button onclick="encerrarSessao()">Encerrar sessão</button>
   </div>
-
 </div>
 
 <script>
-  const relatorio = localStorage.getItem("relatorio_dados");
+const raw = localStorage.getItem("relatorio_dados");
+if (!raw) {
+  document.getElementById("resumoProva").textContent = "Nenhum dado encontrado.";
+  throw new Error("Sem dados");
+}
 
-  function encerrarSessao() {
-    localStorage.clear();
-    window.location.href = "index.html";
-  }
+const data = JSON.parse(raw)[0];
+const alunos = data.alunos;
 
-  if (relatorio) {
-    const data = JSON.parse(relatorio)[0];
+function encerrarSessao() {
+  localStorage.clear();
+  window.location.href = "index.html";
+}
 
-    const tbodyAlunos = document.querySelector("#tabelaAlunos tbody");
+/* ---------- RESUMO ---------- */
+const notas = alunos.map(a => Number(a.nota) || 0);
+const media = notas.reduce((a,b)=>a+b,0) / notas.length;
+const minNota = Math.min(...notas);
+const maxNota = Math.max(...notas);
 
-    tbodyAlunos.innerHTML = data.alunos.map(a => {
-      let violacoesHTML = "-";
-      try {
-        const v = JSON.parse(a.violacoes || "{}");
-        violacoesHTML = Object.keys(v).length
-          ? Object.entries(v).map(([k,val]) => `<span class="violation">${k}: ${val}</span>`).join("")
-          : "-";
-      } catch {}
+document.getElementById("resumoProva").innerHTML = `
+  <p><strong>ID da prova</strong><span class="stat-value">${data.prova_id}</span></p>
+  <p><strong>Total de alunos</strong><span class="stat-value">${alunos.length}</span></p>
+  <p><strong>Média</strong><span class="stat-value">${media.toFixed(2)}</span></p>
+  <p><strong>Nota mínima</strong><span class="stat-value">${minNota}</span></p>
+  <p><strong>Nota máxima</strong><span class="stat-value">${maxNota}</span></p>
+`;
 
-      let classe = "baixo";
-      if (a.indice_suspeicao >= 60) classe = "alto";
-      else if (a.indice_suspeicao >= 30) classe = "medio";
+/* ---------- TABELA ALUNOS + SUSPEIÇÃO ---------- */
+const tempos = alunos.map(a => Number(a.duracao_min) || 0);
+const tempoMedio = tempos.reduce((a,b)=>a+b,0) / tempos.length;
 
-      return `
-        <tr>
-          <td>${a.nome}</td>
-          <td>${a.matricula}</td>
-          <td>${a.nota}</td>
-          <td>${a.duracao_min}</td>
-          <td>${violacoesHTML}</td>
-          <td><span class="suspeicao ${classe}">${a.indice_suspeicao}%</span></td>
-        </tr>
-      `;
-    }).join("");
-  }
+document.querySelector("#tabelaAlunos tbody").innerHTML =
+alunos.map(a => {
+
+  let violacoes = {};
+  try {
+    violacoes = typeof a.violacoes === "string" ? JSON.parse(a.violacoes) : (a.violacoes || {});
+  } catch {}
+
+  const totalViolacoes = Object.values(violacoes).reduce((a,b)=>a+b,0);
+  const scoreViolacoes = Math.min(100, totalViolacoes * 20);
+
+  const scoreTempo = Math.min(100, Math.abs(a.duracao_min - tempoMedio) / tempoMedio * 100);
+  const scoreNota = Math.min(100, Math.abs(a.nota - media) / media * 100);
+
+  const suspeicao = Math.round(
+    0.5*scoreViolacoes + 0.3*scoreTempo + 0.2*scoreNota
+  );
+
+  let classe = suspeicao >= 70 ? "alto" : suspeicao >= 40 ? "medio" : "baixo";
+
+  const violacoesHTML = Object.keys(violacoes).length
+    ? Object.entries(violacoes).map(([k,v])=>`<span class="violation">${k}: ${v}</span>`).join("")
+    : "-";
+
+  return `
+    <tr>
+      <td>${a.nome}</td>
+      <td>${a.matricula}</td>
+      <td>${a.nota}</td>
+      <td>${a.duracao_min}</td>
+      <td>${violacoesHTML}</td>
+      <td class="suspeicao ${classe}">${suspeicao}%</td>
+    </tr>
+  `;
+}).join("");
+
+/* ---------- QUESTÕES ---------- */
+document.querySelector("#tabelaQuestoes tbody").innerHTML =
+data.questoes.map(q=>`
+  <tr>
+    <td>${q.questao_id}</td>
+    <td>${q.tipo}</td>
+    <td>${q.percentual_acerto}%</td>
+    <td>${q.grau_dificuldade || "-"}</td>
+  </tr>
+`).join("");
+
+/* ---------- GRÁFICOS ---------- */
+new Chart(graficoQuestoes,{
+  type:"bar",
+  data:{
+    labels:data.questoes.map(q=>q.questao_id),
+    datasets:[{ data:data.questoes.map(q=>q.percentual_acerto), backgroundColor:"#003366" }]
+  },
+  options:{ scales:{ y:{ beginAtZero:true, max:100 } }, plugins:{legend:{display:false}} }
+});
+
+Chart.register(Chart.BoxPlotController, Chart.BoxAndWhiskersElement);
+
+new Chart(graficoNotas,{
+  type:"boxplot",
+  data:{ labels:["Notas"], datasets:[{ data:notas, backgroundColor:"#003366" }] },
+  options:{ plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, max:10}} }
+});
 </script>
 
 </body>

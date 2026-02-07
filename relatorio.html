@@ -64,10 +64,6 @@
       align-items:center;
     }
 
-    #resumoProva strong {
-      white-space:nowrap;
-    }
-
     .stat-value {
       text-align:right;
       font-weight:600;
@@ -78,7 +74,6 @@
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap:30px;
-      align-items:stretch;
     }
 
     canvas { max-width:100%; }
@@ -107,20 +102,23 @@
       padding:3px 7px;
       border-radius:6px;
       margin-right:4px;
-      margin-bottom:2px;
       font-size:0.85rem;
     }
 
-    .section h3 {
-      color:#003366;
-      margin-bottom:15px;
-      font-size:1.2rem;
-      border-bottom:2px solid #003366;
+    /* 🔍 ÍNDICE DE SUSPEIÇÃO */
+    .suspeicao {
+      font-weight:700;
+      padding:6px 10px;
+      border-radius:8px;
+      color:#fff;
       display:inline-block;
-      padding-bottom:4px;
+      min-width:70px;
+      text-align:center;
     }
+    .baixo { background:#2e7d32; }
+    .medio { background:#f9a825; }
+    .alto  { background:#c62828; }
 
-    /* 🔹 BOTÃO ENCERRAR SESSÃO */
     .logout {
       text-align:center;
       margin:40px 0;
@@ -134,15 +132,9 @@
       font-size:1rem;
       border-radius:8px;
       cursor:pointer;
-      box-shadow:0 4px 10px rgba(0,0,0,0.15);
-    }
-
-    .logout button:hover {
-      background:#002244;
     }
   </style>
 
-  <!-- Chart.js v3 + Boxplot correto -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@3.1.1/build/Chart.BoxPlot.js"></script>
 </head>
@@ -164,12 +156,12 @@
   <div class="graficos">
     <div class="chart-container">
       <h3>Desempenho por Questão (%)</h3>
-      <canvas id="graficoQuestoes" height="220"></canvas>
+      <canvas id="graficoQuestoes"></canvas>
     </div>
 
     <div class="chart-container">
       <h3>Distribuição de Notas (Boxplot)</h3>
-      <canvas id="graficoNotas" height="220"></canvas>
+      <canvas id="graficoNotas"></canvas>
     </div>
   </div>
 
@@ -183,6 +175,7 @@
           <th>Nota</th>
           <th>Duração (min)</th>
           <th>Violações</th>
+          <th>Índice de Suspeição</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -204,7 +197,6 @@
     </table>
   </div>
 
-  <!-- 🔹 BOTÃO ENCERRAR -->
   <div class="logout">
     <button onclick="encerrarSessao()">Encerrar sessão</button>
   </div>
@@ -216,49 +208,27 @@
 
   function encerrarSessao() {
     localStorage.clear();
-    window.location.href = "index.html"; // página 1
+    window.location.href = "index.html";
   }
 
-  if (!relatorio) {
-    document.getElementById("resumoProva").textContent =
-      "Nenhum dado encontrado. Volte para a página 1.";
-  } else {
+  if (relatorio) {
     const data = JSON.parse(relatorio)[0];
 
-    const notas = data.alunos.map(a => a.nota);
-    const media = (notas.reduce((a,b)=>a+b,0)/notas.length).toFixed(2);
-    const minNota = Math.min(...notas);
-    const maxNota = Math.max(...notas);
-    const desvioPadrao = Math.sqrt(
-      notas.map(n=>Math.pow(n-media,2)).reduce((a,b)=>a+b,0)/notas.length
-    ).toFixed(2);
-
-    const acimaMedia = data.alunos.filter(a=>a.nota>media).map(a=>a.nome).join(", ") || "-";
-    const abaixoMedia = data.alunos.filter(a=>a.nota<media).map(a=>a.nome).join(", ") || "-";
-
-    document.getElementById("resumoProva").innerHTML = `
-      <p><strong>ID da prova</strong><span class="stat-value">${data.prova_id}</span></p>
-      <p><strong>Tempo médio da turma (min)</strong><span class="stat-value">${data.tempo_medio_min || "-"}</span></p>
-      <p><strong>Total de alunos</strong><span class="stat-value">${data.total_alunos}</span></p>
-      <p><strong>Quantidade de questões</strong><span class="stat-value">${data.questoes.length}</span></p>
-      <p><strong>Média da turma</strong><span class="stat-value">${media}</span></p>
-      <p><strong>Desvio padrão</strong><span class="stat-value">${desvioPadrao}</span></p>
-      <p><strong>Nota mínima</strong><span class="stat-value">${minNota}</span></p>
-      <p><strong>Nota máxima</strong><span class="stat-value">${maxNota}</span></p>
-      <p><strong>Alunos acima da média</strong><span class="stat-value">${acimaMedia}</span></p>
-      <p><strong>Alunos abaixo da média</strong><span class="stat-value">${abaixoMedia}</span></p>
-    `;
-
     const tbodyAlunos = document.querySelector("#tabelaAlunos tbody");
-    const alunosOrdenados = data.alunos.slice().sort((a,b)=>a.nome.localeCompare(b.nome));
-    tbodyAlunos.innerHTML = alunosOrdenados.map(a => {
+
+    tbodyAlunos.innerHTML = data.alunos.map(a => {
       let violacoesHTML = "-";
       try {
-        const obj = JSON.parse(a.violacoes);
-        const keys = Object.keys(obj);
-        if (keys.length)
-          violacoesHTML = keys.map(k => `<span class="violation">${k}: ${obj[k]}</span>`).join("");
+        const v = JSON.parse(a.violacoes || "{}");
+        violacoesHTML = Object.keys(v).length
+          ? Object.entries(v).map(([k,val]) => `<span class="violation">${k}: ${val}</span>`).join("")
+          : "-";
       } catch {}
+
+      let classe = "baixo";
+      if (a.indice_suspeicao >= 60) classe = "alto";
+      else if (a.indice_suspeicao >= 30) classe = "medio";
+
       return `
         <tr>
           <td>${a.nome}</td>
@@ -266,60 +236,10 @@
           <td>${a.nota}</td>
           <td>${a.duracao_min}</td>
           <td>${violacoesHTML}</td>
+          <td><span class="suspeicao ${classe}">${a.indice_suspeicao}%</span></td>
         </tr>
       `;
     }).join("");
-
-    document.querySelector("#tabelaQuestoes tbody").innerHTML =
-      data.questoes.map(q => `
-        <tr>
-          <td>${q.questao_id}</td>
-          <td>${q.tipo}</td>
-          <td>${q.percentual_acerto}%</td>
-          <td>${q.grau_dificuldade || "-"}</td>
-        </tr>
-      `).join("");
-
-    const graficoQuestoes = document.getElementById("graficoQuestoes");
-    const graficoNotas = document.getElementById("graficoNotas");
-
-    new Chart(graficoQuestoes, {
-      type:"bar",
-      data:{
-        labels:data.questoes.map(q=>q.questao_id),
-        datasets:[{
-          data:data.questoes.map(q=>q.percentual_acerto),
-          backgroundColor:"#003366"
-        }]
-      },
-      options:{
-        scales:{ y:{ beginAtZero:true, max:100 } },
-        plugins:{ legend:{ display:false } }
-      }
-    });
-
-    // ✅ BOXPLOT - Chart.js v3 registrado corretamente
-    Chart.register(Chart.BoxPlotController, Chart.BoxAndWhiskersElement, Chart.CategoryScale, Chart.LinearScale, Chart.Title, Chart.Tooltip, Chart.Legend);
-
-    new Chart(graficoNotas, {
-      type:'boxplot',
-      data:{
-        labels:['Notas'],
-        datasets:[{
-          label:'Notas',
-          data: notas,
-          backgroundColor:'#003366',
-          borderColor:'#003366',
-          outlierColor:'#d00000',
-          outlierRadius:6
-        }]
-      },
-      options:{
-        plugins:{ legend:{ display:false } },
-        scales:{ y:{ beginAtZero:true, max:10 } }
-      }
-    });
-
   }
 </script>
 

@@ -64,9 +64,7 @@
       align-items:center;
     }
 
-    #resumoProva strong {
-      white-space:nowrap;
-    }
+    #resumoProva strong { white-space:nowrap; }
 
     .stat-value {
       text-align:right;
@@ -111,14 +109,12 @@
       font-size:0.85rem;
     }
 
-    /* 🔹 ESTILO DO ÍNDICE DE SUSPEIÇÃO (ADICIONADO) */
     .suspeicao {
       font-weight:600;
       padding:4px 10px;
       border-radius:20px;
       color:#fff;
       font-size:0.85rem;
-      display:inline-block;
     }
     .suspeicao.baixa { background:#2e7d32; }
     .suspeicao.media { background:#f9a825; }
@@ -149,9 +145,7 @@
       box-shadow:0 4px 10px rgba(0,0,0,0.15);
     }
 
-    .logout button:hover {
-      background:#002244;
-    }
+    .logout button:hover { background:#002244; }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
@@ -194,7 +188,7 @@
           <th>Nota</th>
           <th>Duração (min)</th>
           <th>Violações</th>
-          <th>Índice de Suspeição</th><!-- ADICIONADO -->
+          <th>Índice de Suspeição</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -236,55 +230,63 @@
   } else {
     const data = JSON.parse(relatorio)[0];
 
-    const notas = data.alunos.map(a => a.nota);
-    const media = (notas.reduce((a,b)=>a+b,0)/notas.length);
+    const notas = data.alunos.map(a => Number(a.nota));
+    const mediaNum = notas.reduce((a,b)=>a+b,0) / notas.length;
+    const media = mediaNum.toFixed(2);
+    const minNota = Math.min(...notas);
+    const maxNota = Math.max(...notas);
     const desvioPadrao = Math.sqrt(
-      notas.map(n=>Math.pow(n-media,2)).reduce((a,b)=>a+b,0)/notas.length
-    );
+      notas.map(n=>Math.pow(n-mediaNum,2)).reduce((a,b)=>a+b,0)/notas.length
+    ).toFixed(2);
 
-    /* 🔹 FUNÇÃO DE ÍNDICE DE SUSPEIÇÃO (ADICIONADA) */
-    function calcularIndiceSuspeicao(aluno) {
-      let score = 0;
+    const acimaMedia = data.alunos.filter(a=>a.nota>mediaNum).map(a=>a.nome).join(", ") || "-";
+    const abaixoMedia = data.alunos.filter(a=>a.nota<mediaNum).map(a=>a.nome).join(", ") || "-";
 
-      try {
-        const v = JSON.parse(aluno.violacoes || "{}");
-        score += Math.min(Object.keys(v).length * 25, 50);
-      } catch {}
+    document.getElementById("resumoProva").innerHTML = `
+      <p><strong>ID da prova</strong><span class="stat-value">${data.prova_id}</span></p>
+      <p><strong>Tempo médio da turma (min)</strong><span class="stat-value">${data.tempo_medio_min || "-"}</span></p>
+      <p><strong>Total de alunos</strong><span class="stat-value">${data.total_alunos}</span></p>
+      <p><strong>Quantidade de questões</strong><span class="stat-value">${data.questoes.length}</span></p>
+      <p><strong>Média da turma</strong><span class="stat-value">${media}</span></p>
+      <p><strong>Desvio padrão</strong><span class="stat-value">${desvioPadrao}</span></p>
+      <p><strong>Nota mínima</strong><span class="stat-value">${minNota}</span></p>
+      <p><strong>Nota máxima</strong><span class="stat-value">${maxNota}</span></p>
+      <p><strong>Alunos acima da média</strong><span class="stat-value">${acimaMedia}</span></p>
+      <p><strong>Alunos abaixo da média</strong><span class="stat-value">${abaixoMedia}</span></p>
+    `;
 
-      if (aluno.duracao_min < data.tempo_medio_min * 0.5) score += 25;
-      if (aluno.duracao_min > data.tempo_medio_min * 1.5) score += 15;
-
-      if (aluno.nota >= media + desvioPadrao) score += 15;
-
-      return Math.min(100, Math.round(score));
+    function indiceSuspeicao(a) {
+      let s = 0;
+      try { s += Object.keys(JSON.parse(a.violacoes || "{}")).length * 25; } catch {}
+      if (a.duracao_min < data.tempo_medio_min * 0.5) s += 25;
+      if (a.nota > mediaNum + desvioPadrao) s += 20;
+      return Math.min(100, s);
     }
 
-    const tbodyAlunos = document.querySelector("#tabelaAlunos tbody");
-    const alunosOrdenados = data.alunos.slice().sort((a,b)=>a.nome.localeCompare(b.nome));
+    document.querySelector("#tabelaAlunos tbody").innerHTML =
+      data.alunos.slice().sort((a,b)=>a.nome.localeCompare(b.nome)).map(a=>{
+        let violacoesHTML = "-";
+        try {
+          const obj = JSON.parse(a.violacoes);
+          const keys = Object.keys(obj);
+          if (keys.length)
+            violacoesHTML = keys.map(k => `<span class="violation">${k}: ${obj[k]}</span>`).join("");
+        } catch {}
 
-    tbodyAlunos.innerHTML = alunosOrdenados.map(a => {
-      let violacoesHTML = "-";
-      try {
-        const obj = JSON.parse(a.violacoes);
-        const keys = Object.keys(obj);
-        if (keys.length)
-          violacoesHTML = keys.map(k => `<span class="violation">${k}: ${obj[k]}</span>`).join("");
-      } catch {}
+        const i = indiceSuspeicao(a);
+        const c = i<30?"baixa":i<60?"media":"alta";
 
-      const indice = calcularIndiceSuspeicao(a);
-      const nivel = indice < 30 ? "baixa" : indice < 60 ? "media" : "alta";
-
-      return `
-        <tr>
-          <td>${a.nome}</td>
-          <td>${a.matricula}</td>
-          <td>${a.nota}</td>
-          <td>${a.duracao_min}</td>
-          <td>${violacoesHTML}</td>
-          <td><span class="suspeicao ${nivel}">${indice}%</span></td>
-        </tr>
-      `;
-    }).join("");
+        return `
+          <tr>
+            <td>${a.nome}</td>
+            <td>${a.matricula}</td>
+            <td>${Number(a.nota).toFixed(1)}</td>
+            <td>${a.duracao_min}</td>
+            <td>${violacoesHTML}</td>
+            <td><span class="suspeicao ${c}">${i}%</span></td>
+          </tr>
+        `;
+      }).join("");
 
     document.querySelector("#tabelaQuestoes tbody").innerHTML =
       data.questoes.map(q => `
@@ -296,47 +298,21 @@
         </tr>
       `).join("");
 
-    const graficoQuestoes = document.getElementById("graficoQuestoes");
-    const graficoNotas = document.getElementById("graficoNotas");
+    Chart.register(Chart.BoxPlotController, Chart.BoxAndWhiskersElement, Chart.CategoryScale, Chart.LinearScale);
 
-    new Chart(graficoQuestoes, {
+    new Chart(document.getElementById("graficoQuestoes"), {
       type:"bar",
       data:{
         labels:data.questoes.map(q=>q.questao_id),
-        datasets:[{
-          data:data.questoes.map(q=>q.percentual_acerto),
-          backgroundColor:"#003366"
-        }]
+        datasets:[{ data:data.questoes.map(q=>q.percentual_acerto), backgroundColor:"#003366" }]
       },
-      options:{
-        scales:{ y:{ beginAtZero:true, max:100 } },
-        plugins:{ legend:{ display:false } }
-      }
+      options:{ scales:{ y:{ beginAtZero:true, max:100 } }, plugins:{ legend:{ display:false } } }
     });
 
-    Chart.register(
-      Chart.BoxPlotController,
-      Chart.BoxAndWhiskersElement,
-      Chart.CategoryScale,
-      Chart.LinearScale
-    );
-
-    new Chart(graficoNotas, {
+    new Chart(document.getElementById("graficoNotas"), {
       type:'boxplot',
-      data:{
-        labels:['Notas'],
-        datasets:[{
-          data: notas,
-          backgroundColor:'#003366',
-          borderColor:'#003366',
-          outlierColor:'#d00000',
-          outlierRadius:6
-        }]
-      },
-      options:{
-        plugins:{ legend:{ display:false } },
-        scales:{ y:{ beginAtZero:true, max:10 } }
-      }
+      data:{ labels:['Notas'], datasets:[{ data:notas, backgroundColor:'#003366' }] },
+      options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, max:10 } } }
     });
   }
 </script>

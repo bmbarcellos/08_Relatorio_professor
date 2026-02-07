@@ -197,6 +197,7 @@
           <th>ID da Questão</th>
           <th>Tipo</th>
           <th>% de Acerto</th>
+          <th>Grau de Dificuldade</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -275,6 +276,7 @@
           <td>${q.questao_id}</td>
           <td>${q.tipo}</td>
           <td>${q.percentual_acerto}%</td>
+          <td>${q.grau_dificuldade || "-"}</td>
         </tr>
       `).join("");
 

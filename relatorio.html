@@ -120,6 +120,7 @@
       padding-bottom:4px;
     }
 
+    /* 🔹 BOTÃO ENCERRAR SESSÃO */
     .logout {
       text-align:center;
       margin:40px 0;
@@ -141,9 +142,9 @@
     }
   </style>
 
-  <!-- Chart.js v3 + Boxplot -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot/build/Chart.BoxPlot.js"></script>
+  <!-- Chart.js v2 + Boxplot (compatível com seu código atual) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@2.0.1/build/Chart.BoxPlot.js"></script>
 </head>
 
 <body>
@@ -203,6 +204,7 @@
     </table>
   </div>
 
+  <!-- 🔹 BOTÃO ENCERRAR -->
   <div class="logout">
     <button onclick="encerrarSessao()">Encerrar sessão</button>
   </div>
@@ -214,7 +216,7 @@
 
   function encerrarSessao() {
     localStorage.clear();
-    window.location.href = "index.html"; 
+    window.location.href = "index.html"; // página 1
   }
 
   if (!relatorio) {
@@ -281,7 +283,6 @@
     const graficoQuestoes = document.getElementById("graficoQuestoes");
     const graficoNotas = document.getElementById("graficoNotas");
 
-    // ---------- GRAFICO QUESTOES ----------
     new Chart(graficoQuestoes, {
       type:"bar",
       data:{
@@ -292,28 +293,19 @@
         }]
       },
       options:{
-        scales:{ y:{beginAtZero:true,max:100} },
-        plugins:{legend:{display:false}}
+        scales:{ yAxes:[{ ticks:{ beginAtZero:true, max:100 } }] },
+        legend:{ display:false }
       }
     });
 
-    // ---------- REGISTRO DO BOXPLOT ----------
-    Chart.register(
-      Chart.BoxPlotController,
-      Chart.elements.BoxAndWhiskers,
-      Chart.elements.BoxPlotOutlier,
-      Chart.scales.LinearScale,
-      Chart.plugins.tooltip
-    );
-
-    // ---------- BOXPLOT COM OUTLIERS ----------
+    // ✅ BOXPLOT COM OUTLIERS - compatível Chart.js v2
     new Chart(graficoNotas, {
       type:'boxplot',
       data:{
         labels:['Notas'],
         datasets:[{
           label: 'Notas',
-          data:[notas], // ⚠️ array dentro de array
+          data: notas, 
           backgroundColor:'#003366',
           borderColor:'#003366',
           outlierColor:'#d00000',
@@ -321,8 +313,8 @@
         }]
       },
       options:{
-        plugins:{legend:{display:false}},
-        scales:{y:{beginAtZero:true,max:10}}
+        legend:{ display:false },
+        scales:{ yAxes:[{ ticks:{ beginAtZero:true, max:10 } }] }
       }
     });
 

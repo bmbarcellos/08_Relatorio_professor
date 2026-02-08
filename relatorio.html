@@ -343,33 +343,68 @@
     }
 
     const { q1, q2, q3 } = calcularQuartis(notas);
+// Cálculo da média (linha)
+const mediaLinha = Number(mediaNum.toFixed(1));
 
-    new Chart(document.getElementById("graficoNotas"), {
-      type: "bar",
-      data: {
-        labels: ["Q1", "Mediana", "Q3"],
-        datasets: [{
-          data: [q1, q2, q3],
-          backgroundColor: ["#99bbff", "#003366", "#99bbff"]
-        }]
+// Cálculo de outliers via IQR
+const iqr = q3 - q1;
+const limiteInferior = q1 - 1.5 * iqr;
+const limiteSuperior = q3 + 1.5 * iqr;
+
+const outliers = notas
+  .filter(n => n < limiteInferior || n > limiteSuperior)
+  .map(n => ({ x: "Outliers", y: n }));
+
+new Chart(document.getElementById("graficoNotas"), {
+  data: {
+    labels: ["Q1", "Mediana", "Q3", "Outliers"],
+    datasets: [
+
+      // Quartis (barras)
+      {
+        type: "bar",
+        data: [q1, q2, q3, null],
+        backgroundColor: ["#99bbff", "#003366", "#99bbff", "transparent"]
       },
-      options: {
-        scales: {
-          y: {
-            beginAtZero: true,
-            max: 10
-          }
-        },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => `Nota: ${ctx.raw}`
-            }
-          }
+
+      // Linha da média
+      {
+        type: "line",
+        data: [mediaLinha, mediaLinha, mediaLinha, mediaLinha],
+        borderColor: "#cc0000",
+        borderWidth: 2,
+        borderDash: [6, 6],
+        pointRadius: 0
+      },
+
+      // Outliers (pontos)
+      {
+        type: "scatter",
+        data: outliers,
+        pointBackgroundColor: "#ff0000",
+        pointRadius: 6
+      }
+
+    ]
+  },
+  options: {
+    scales: {
+      y: {
+        beginAtZero: true,
+        max: 10
+      }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => `Nota: ${ctx.raw}`
         }
       }
-    });
+    }
+  }
+});
+
 
   }
 </script>

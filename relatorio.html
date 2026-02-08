@@ -64,6 +64,10 @@
       align-items:center;
     }
 
+    #resumoProva strong {
+      white-space:nowrap;
+    }
+
     .stat-value {
       text-align:right;
       font-weight:600;
@@ -74,7 +78,10 @@
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap:30px;
+      align-items:stretch;
     }
+
+    canvas { max-width:100%; }
 
     table {
       width:100%;
@@ -87,23 +94,49 @@
       margin-bottom:30px;
     }
 
-    th, td { padding:12px 16px; }
-    th { background-color:#003366; color:#fff; }
+    th, td { padding:12px 16px; text-align:left; }
+    th { background-color:#003366; color:#fff; font-weight:600; }
     tr:nth-child(even) td { background-color:#f4f6fa; }
+    tr:hover td { background-color:#d9e8ff; }
 
     .violation {
       display:inline-block;
-      background:#ffdddd;
+      background-color:#ffdddd;
       color:#800000;
+      font-weight:500;
       padding:3px 7px;
       border-radius:6px;
-      font-size:0.85rem;
       margin-right:4px;
+      margin-bottom:2px;
+      font-size:0.85rem;
     }
 
-    .suspeicao-baixa { background:#e6f4ea; color:#1e7e34; font-weight:600; }
-    .suspeicao-media { background:#fff4cc; color:#8a6d00; font-weight:600; }
-    .suspeicao-alta  { background:#ffe0e0; color:#a00000; font-weight:600; }
+    .suspeicao-baixa {
+      background:#e6f4ea;
+      color:#1e7e34;
+      font-weight:600;
+    }
+
+    .suspeicao-media {
+      background:#fff4cc;
+      color:#8a6d00;
+      font-weight:600;
+    }
+
+    .suspeicao-alta {
+      background:#ffe0e0;
+      color:#a00000;
+      font-weight:600;
+    }
+
+    .section h3 {
+      color:#003366;
+      margin-bottom:15px;
+      font-size:1.2rem;
+      border-bottom:2px solid #003366;
+      display:inline-block;
+      padding-bottom:4px;
+    }
 
     .logout {
       text-align:center;
@@ -115,12 +148,19 @@
       color:#fff;
       border:none;
       padding:12px 28px;
+      font-size:1rem;
       border-radius:8px;
       cursor:pointer;
+      box-shadow:0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    .logout button:hover {
+      background:#002244;
     }
   </style>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@3.1.1/build/Chart.BoxPlot.js"></script>
 </head>
 
 <body>
@@ -140,111 +180,198 @@
   <div class="graficos">
     <div class="chart-container">
       <h3>Desempenho por Questão (%)</h3>
-      <canvas id="graficoQuestoes"></canvas>
+      <canvas id="graficoQuestoes" height="220"></canvas>
     </div>
 
     <div class="chart-container">
-      <h3>Distribuição de Notas (Quartis)</h3>
-      <canvas id="graficoNotas"></canvas>
+      <h3>Distribuição de Notas (Boxplot)</h3>
+      <canvas id="graficoNotas" height="220"></canvas>
     </div>
   </div>
 
-  <h3>Alunos</h3>
-  <table id="tabelaAlunos">
-    <thead>
-      <tr>
-        <th>Nome</th>
-        <th>Matrícula</th>
-        <th>Nota</th>
-        <th>Duração (min)</th>
-        <th>Violações</th>
-        <th>Índice de Suspeição (%)</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="section">
+    <h3>Alunos</h3>
+    <table id="tabelaAlunos">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Matrícula</th>
+          <th>Nota</th>
+          <th>Duração (min)</th>
+          <th>Violações</th>
+          <th>Índice de Suspeição (%)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
-  <h3>Estatísticas das Questões</h3>
-  <table id="tabelaQuestoes">
-    <thead>
-      <tr>
-        <th>ID</th>
-        <th>Tipo</th>
-        <th>% Acerto</th>
-        <th>Grau de Dificuldade</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <div class="section">
+    <h3>Estatísticas das Questões</h3>
+    <table id="tabelaQuestoes">
+      <thead>
+        <tr>
+          <th>ID da Questão</th>
+          <th>Tipo</th>
+          <th>% de Acerto</th>
+          <th>Grau de Dificuldade</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <div class="logout">
-    <button onclick="localStorage.clear(); location.href='index.html'">
-      Encerrar sessão
-    </button>
+    <button onclick="encerrarSessao()">Encerrar sessão</button>
   </div>
 
 </div>
 
 <script>
-  const data = JSON.parse(localStorage.getItem("relatorio_dados"))?.[0];
-  if (!data) return;
+  const relatorio = localStorage.getItem("relatorio_dados");
 
-  const notas = data.alunos.map(a => a.nota).sort((a,b)=>a-b);
+  function encerrarSessao() {
+    localStorage.clear();
+    window.location.href = "index.html";
+  }
 
-  const mediana = arr =>
-    arr.length % 2 ? arr[Math.floor(arr.length/2)]
-                   : (arr[arr.length/2-1] + arr[arr.length/2]) / 2;
+  if (!relatorio) {
+    document.getElementById("resumoProva").textContent =
+      "Nenhum dado encontrado. Volte para a página 1.";
+  } else {
+    const data = JSON.parse(relatorio)[0];
 
-  const q2 = mediana(notas);
-  const q1 = mediana(notas.slice(0, Math.floor(notas.length/2)));
-  const q3 = mediana(notas.slice(Math.ceil(notas.length/2)));
+    const notas = data.alunos.map(a => a.nota);
 
-  document.getElementById("resumoProva").innerHTML = `
-    <p><strong>ID</strong><span class="stat-value">${data.prova_id}</span></p>
-    <p><strong>Média</strong><span class="stat-value">${data.media_turma.toFixed(1)}</span></p>
-    <p><strong>Tempo médio</strong><span class="stat-value">${data.tempo_medio_min}</span></p>
-    <p><strong>Total alunos</strong><span class="stat-value">${data.total_alunos}</span></p>
-  `;
+    const mediaNum = notas.reduce((a,b)=>a+b,0) / notas.length;
+    const media = mediaNum.toFixed(1);
 
-  document.querySelector("#tabelaAlunos tbody").innerHTML =
-    data.alunos.map(a => `
-      <tr>
-        <td>${a.nome}</td>
-        <td>${a.matricula}</td>
-        <td>${a.nota.toFixed(1)}</td>
-        <td>${a.duracao_min}</td>
-        <td>${a.violacoes}</td>
-        <td>${a.indice_suspeicao}%</td>
-      </tr>
-    `).join("");
+    const minNota = Math.min(...notas).toFixed(1);
+    const maxNota = Math.max(...notas).toFixed(1);
 
-  document.querySelector("#tabelaQuestoes tbody").innerHTML =
-    data.questoes.map(q => `
-      <tr>
-        <td>${q.questao_id}</td>
-        <td>${q.tipo}</td>
-        <td>${q.percentual_acerto}%</td>
-        <td>${q.grau_dificuldade || "-"}</td>
-      </tr>
-    `).join("");
+    const desvioPadrao = Math.sqrt(
+      notas.map(n=>Math.pow(n-mediaNum,2)).reduce((a,b)=>a+b,0)/notas.length
+    ).toFixed(2);
 
-  new Chart(graficoQuestoes, {
-    type:"bar",
-    data:{
-      labels:data.questoes.map(q=>q.questao_id),
-      datasets:[{ data:data.questoes.map(q=>q.percentual_acerto), backgroundColor:"#003366" }]
-    },
-    options:{ scales:{ y:{ beginAtZero:true, max:100 }}, plugins:{ legend:{display:false}} }
-  });
+    document.getElementById("resumoProva").innerHTML = `
+      <p><strong>ID da prova</strong><span class="stat-value">${data.prova_id}</span></p>
+      <p><strong>Tempo médio da turma (min)</strong><span class="stat-value">${data.tempo_medio_min}</span></p>
+      <p><strong>Total de alunos</strong><span class="stat-value">${data.total_alunos}</span></p>
+      <p><strong>Quantidade de questões</strong><span class="stat-value">${data.questoes.length}</span></p>
+      <p><strong>Média da turma</strong><span class="stat-value">${media}</span></p>
+      <p><strong>Desvio padrão</strong><span class="stat-value">${desvioPadrao}</span></p>
+      <p><strong>Nota mínima</strong><span class="stat-value">${minNota}</span></p>
+      <p><strong>Nota máxima</strong><span class="stat-value">${maxNota}</span></p>
+    `;
 
-  new Chart(graficoNotas, {
-    type:"bar",
-    data:{
-      labels:["Q1","Mediana","Q3"],
-      datasets:[{ data:[q1,q2,q3], backgroundColor:["#99bbff","#003366","#99bbff"] }]
-    },
-    options:{ scales:{ y:{ beginAtZero:true, max:10 }}, plugins:{ legend:{display:false}} }
-  });
+    const tbodyAlunos = document.querySelector("#tabelaAlunos tbody");
+
+    tbodyAlunos.innerHTML = data.alunos
+      .slice()
+      .sort((a,b)=>a.nome.localeCompare(b.nome))
+      .map(a => {
+
+        let violacoesHTML = "-";
+        try {
+          const obj = JSON.parse(a.violacoes || "{}");
+          if (Object.keys(obj).length)
+            violacoesHTML = Object.keys(obj)
+              .map(k => `<span class="violation">${k}: ${obj[k]}</span>`)
+              .join("");
+        } catch {}
+
+        const indice = a.indice_suspeicao ?? 0;
+        let classe = "suspeicao-baixa";
+        if (indice > 60) classe = "suspeicao-alta";
+        else if (indice > 30) classe = "suspeicao-media";
+
+        return `
+          <tr>
+            <td>${a.nome}</td>
+            <td>${a.matricula}</td>
+            <td>${Number(a.nota).toFixed(1)}</td>
+            <td>${a.duracao_min}</td>
+            <td>${violacoesHTML}</td>
+            <td class="${classe}">${indice}%</td>
+          </tr>
+        `;
+      }).join("");
+
+    document.querySelector("#tabelaQuestoes tbody").innerHTML =
+      data.questoes.map(q => `
+        <tr>
+          <td>${q.questao_id}</td>
+          <td>${q.tipo}</td>
+          <td>${q.percentual_acerto}%</td>
+          <td>${q.grau_dificuldade || "-"}</td>
+        </tr>
+      `).join("");
+
+    new Chart(document.getElementById("graficoQuestoes"), {
+      type:"bar",
+      data:{
+        labels:data.questoes.map(q=>q.questao_id),
+        datasets:[{ data:data.questoes.map(q=>q.percentual_acerto), backgroundColor:"#003366" }]
+      },
+      options:{ scales:{ y:{ beginAtZero:true, max:100 } }, plugins:{ legend:{ display:false } } }
+    });
+
+    // ===============================
+    // GRÁFICO DE DISTRIBUIÇÃO (BARRAS – Q1, MEDIANA, Q3)
+    // ===============================
+    function calcularQuartis(valores) {
+      const v = [...valores].sort((a,b)=>a-b);
+
+      const mediana = arr => {
+        const m = Math.floor(arr.length / 2);
+        return arr.length % 2 !== 0
+          ? arr[m]
+          : (arr[m - 1] + arr[m]) / 2;
+      };
+
+      const q2 = mediana(v);
+      const metade = Math.floor(v.length / 2);
+
+      const q1 = mediana(v.slice(0, metade));
+      const q3 = mediana(v.slice(v.length % 2 ? metade + 1 : metade));
+
+      return {
+        q1: Number(q1.toFixed(1)),
+        q2: Number(q2.toFixed(1)),
+        q3: Number(q3.toFixed(1))
+      };
+    }
+
+    const { q1, q2, q3 } = calcularQuartis(notas);
+
+    new Chart(document.getElementById("graficoNotas"), {
+      type: "bar",
+      data: {
+        labels: ["Q1", "Mediana", "Q3"],
+        datasets: [{
+          data: [q1, q2, q3],
+          backgroundColor: ["#99bbff", "#003366", "#99bbff"]
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 10
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `Nota: ${ctx.raw}`
+            }
+          }
+        }
+      }
+    });
+
+  }
 </script>
 
 </body>

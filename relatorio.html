@@ -360,32 +360,53 @@ new Chart(document.getElementById("graficoNotas"), {
     labels: ["Q1", "Mediana", "Q3", "Outliers"],
     datasets: [
 
-      // Quartis (barras)
-      {
-        type: "bar",
-        data: [q1, q2, q3, null],
-        backgroundColor: ["#99bbff", "#003366", "#99bbff", "transparent"]
-      },
+  // Quartis (barras)
+  {
+    type: "bar",
+    data: [q1, q2, q3, null],
+    backgroundColor: ["#99bbff", "#003366", "#99bbff", "transparent"]
+  },
 
-      // Linha da média
-      {
-        type: "line",
-        data: [mediaLinha, mediaLinha, mediaLinha, mediaLinha],
-        borderColor: "#cc0000",
-        borderWidth: 2,
-        borderDash: [6, 6],
-        pointRadius: 0
-      },
+  // Linha da média
+  {
+    type: "line",
+    data: [mediaLinha, mediaLinha, mediaLinha, mediaLinha],
+    borderColor: "#cc0000",
+    borderWidth: 2,
+    borderDash: [6, 6],
+    pointRadius: 0
+  },
 
-      // Outliers (pontos)
-      {
-        type: "scatter",
-        data: outliers,
-        pointBackgroundColor: "#ff0000",
-        pointRadius: 6
-      }
+  // Limite inferior IQR
+  {
+    type: "line",
+    data: [limiteInferior, limiteInferior, limiteInferior, limiteInferior],
+    borderColor: "#ff9900",
+    borderWidth: 2,
+    borderDash: [4, 4],
+    pointRadius: 0
+  },
 
-    ]
+  // Limite superior IQR
+  {
+    type: "line",
+    data: [limiteSuperior, limiteSuperior, limiteSuperior, limiteSuperior],
+    borderColor: "#ff9900",
+    borderWidth: 2,
+    borderDash: [4, 4],
+    pointRadius: 0
+  },
+
+  // Outliers (pontos)
+  {
+    type: "scatter",
+    data: outliers,
+    pointBackgroundColor: "#ff0000",
+    pointRadius: 6
+  }
+
+]
+
   },
   options: {
     scales: {

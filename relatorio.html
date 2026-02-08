@@ -111,7 +111,6 @@
       font-size:0.85rem;
     }
 
-    /* 🔍 Índice de suspeição */
     .suspeicao-baixa {
       background:#e6f4ea;
       color:#1e7e34;
@@ -243,11 +242,15 @@
     const data = JSON.parse(relatorio)[0];
 
     const notas = data.alunos.map(a => a.nota);
-    const media = (notas.reduce((a,b)=>a+b,0)/notas.length).toFixed(2);
-    const minNota = Math.min(...notas);
-    const maxNota = Math.max(...notas);
+
+    const mediaNum = notas.reduce((a,b)=>a+b,0) / notas.length;
+    const media = mediaNum.toFixed(1);
+
+    const minNota = Math.min(...notas).toFixed(1);
+    const maxNota = Math.max(...notas).toFixed(1);
+
     const desvioPadrao = Math.sqrt(
-      notas.map(n=>Math.pow(n-media,2)).reduce((a,b)=>a+b,0)/notas.length
+      notas.map(n=>Math.pow(n-mediaNum,2)).reduce((a,b)=>a+b,0)/notas.length
     ).toFixed(2);
 
     document.getElementById("resumoProva").innerHTML = `
@@ -286,7 +289,7 @@
           <tr>
             <td>${a.nome}</td>
             <td>${a.matricula}</td>
-            <td>${a.nota}</td>
+            <td>${Number(a.nota).toFixed(1)}</td>
             <td>${a.duracao_min}</td>
             <td>${violacoesHTML}</td>
             <td class="${classe}">${indice}%</td>

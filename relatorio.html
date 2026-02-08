@@ -111,6 +111,25 @@
       font-size:0.85rem;
     }
 
+    /* 🔍 Índice de suspeição */
+    .suspeicao-baixa {
+      background:#e6f4ea;
+      color:#1e7e34;
+      font-weight:600;
+    }
+
+    .suspeicao-media {
+      background:#fff4cc;
+      color:#8a6d00;
+      font-weight:600;
+    }
+
+    .suspeicao-alta {
+      background:#ffe0e0;
+      color:#a00000;
+      font-weight:600;
+    }
+
     .section h3 {
       color:#003366;
       margin-bottom:15px;
@@ -120,7 +139,6 @@
       padding-bottom:4px;
     }
 
-    /* 🔹 BOTÃO ENCERRAR SESSÃO */
     .logout {
       text-align:center;
       margin:40px 0;
@@ -142,7 +160,6 @@
     }
   </style>
 
-  <!-- Chart.js v3 + Boxplot correto -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-box-and-violin-plot@3.1.1/build/Chart.BoxPlot.js"></script>
 </head>
@@ -183,6 +200,7 @@
           <th>Nota</th>
           <th>Duração (min)</th>
           <th>Violações</th>
+          <th>Índice de Suspeição (%)</th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -204,7 +222,6 @@
     </table>
   </div>
 
-  <!-- 🔹 BOTÃO ENCERRAR -->
   <div class="logout">
     <button onclick="encerrarSessao()">Encerrar sessão</button>
   </div>
@@ -216,7 +233,7 @@
 
   function encerrarSessao() {
     localStorage.clear();
-    window.location.href = "index.html"; // página 1
+    window.location.href = "index.html";
   }
 
   if (!relatorio) {
@@ -233,42 +250,49 @@
       notas.map(n=>Math.pow(n-media,2)).reduce((a,b)=>a+b,0)/notas.length
     ).toFixed(2);
 
-    const acimaMedia = data.alunos.filter(a=>a.nota>media).map(a=>a.nome).join(", ") || "-";
-    const abaixoMedia = data.alunos.filter(a=>a.nota<media).map(a=>a.nome).join(", ") || "-";
-
     document.getElementById("resumoProva").innerHTML = `
       <p><strong>ID da prova</strong><span class="stat-value">${data.prova_id}</span></p>
-      <p><strong>Tempo médio da turma (min)</strong><span class="stat-value">${data.tempo_medio_min || "-"}</span></p>
+      <p><strong>Tempo médio da turma (min)</strong><span class="stat-value">${data.tempo_medio_min}</span></p>
       <p><strong>Total de alunos</strong><span class="stat-value">${data.total_alunos}</span></p>
       <p><strong>Quantidade de questões</strong><span class="stat-value">${data.questoes.length}</span></p>
       <p><strong>Média da turma</strong><span class="stat-value">${media}</span></p>
       <p><strong>Desvio padrão</strong><span class="stat-value">${desvioPadrao}</span></p>
       <p><strong>Nota mínima</strong><span class="stat-value">${minNota}</span></p>
       <p><strong>Nota máxima</strong><span class="stat-value">${maxNota}</span></p>
-      <p><strong>Alunos acima da média</strong><span class="stat-value">${acimaMedia}</span></p>
-      <p><strong>Alunos abaixo da média</strong><span class="stat-value">${abaixoMedia}</span></p>
     `;
 
     const tbodyAlunos = document.querySelector("#tabelaAlunos tbody");
-    const alunosOrdenados = data.alunos.slice().sort((a,b)=>a.nome.localeCompare(b.nome));
-    tbodyAlunos.innerHTML = alunosOrdenados.map(a => {
-      let violacoesHTML = "-";
-      try {
-        const obj = JSON.parse(a.violacoes);
-        const keys = Object.keys(obj);
-        if (keys.length)
-          violacoesHTML = keys.map(k => `<span class="violation">${k}: ${obj[k]}</span>`).join("");
-      } catch {}
-      return `
-        <tr>
-          <td>${a.nome}</td>
-          <td>${a.matricula}</td>
-          <td>${a.nota}</td>
-          <td>${a.duracao_min}</td>
-          <td>${violacoesHTML}</td>
-        </tr>
-      `;
-    }).join("");
+
+    tbodyAlunos.innerHTML = data.alunos
+      .slice()
+      .sort((a,b)=>a.nome.localeCompare(b.nome))
+      .map(a => {
+
+        let violacoesHTML = "-";
+        try {
+          const obj = JSON.parse(a.violacoes || "{}");
+          if (Object.keys(obj).length)
+            violacoesHTML = Object.keys(obj)
+              .map(k => `<span class="violation">${k}: ${obj[k]}</span>`)
+              .join("");
+        } catch {}
+
+        const indice = a.indice_suspeicao ?? 0;
+        let classe = "suspeicao-baixa";
+        if (indice > 60) classe = "suspeicao-alta";
+        else if (indice > 30) classe = "suspeicao-media";
+
+        return `
+          <tr>
+            <td>${a.nome}</td>
+            <td>${a.matricula}</td>
+            <td>${a.nota}</td>
+            <td>${a.duracao_min}</td>
+            <td>${violacoesHTML}</td>
+            <td class="${classe}">${indice}%</td>
+          </tr>
+        `;
+      }).join("");
 
     document.querySelector("#tabelaQuestoes tbody").innerHTML =
       data.questoes.map(q => `
@@ -280,46 +304,27 @@
         </tr>
       `).join("");
 
-    const graficoQuestoes = document.getElementById("graficoQuestoes");
-    const graficoNotas = document.getElementById("graficoNotas");
-
-    new Chart(graficoQuestoes, {
+    new Chart(document.getElementById("graficoQuestoes"), {
       type:"bar",
       data:{
         labels:data.questoes.map(q=>q.questao_id),
-        datasets:[{
-          data:data.questoes.map(q=>q.percentual_acerto),
-          backgroundColor:"#003366"
-        }]
+        datasets:[{ data:data.questoes.map(q=>q.percentual_acerto), backgroundColor:"#003366" }]
       },
-      options:{
-        scales:{ y:{ beginAtZero:true, max:100 } },
-        plugins:{ legend:{ display:false } }
-      }
+      options:{ scales:{ y:{ beginAtZero:true, max:100 } }, plugins:{ legend:{ display:false } } }
     });
 
-    // ✅ BOXPLOT - Chart.js v3 registrado corretamente
-    Chart.register(Chart.BoxPlotController, Chart.BoxAndWhiskersElement, Chart.CategoryScale, Chart.LinearScale, Chart.Title, Chart.Tooltip, Chart.Legend);
+    Chart.register(
+      Chart.BoxPlotController,
+      Chart.BoxAndWhiskersElement,
+      Chart.CategoryScale,
+      Chart.LinearScale
+    );
 
-    new Chart(graficoNotas, {
-      type:'boxplot',
-      data:{
-        labels:['Notas'],
-        datasets:[{
-          label:'Notas',
-          data: notas,
-          backgroundColor:'#003366',
-          borderColor:'#003366',
-          outlierColor:'#d00000',
-          outlierRadius:6
-        }]
-      },
-      options:{
-        plugins:{ legend:{ display:false } },
-        scales:{ y:{ beginAtZero:true, max:10 } }
-      }
+    new Chart(document.getElementById("graficoNotas"), {
+      type:"boxplot",
+      data:{ labels:["Notas"], datasets:[{ data:notas }] },
+      options:{ scales:{ y:{ beginAtZero:true, max:10 } }, plugins:{ legend:{ display:false } } }
     });
-
   }
 </script>
 
